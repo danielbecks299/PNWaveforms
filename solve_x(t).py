@@ -89,6 +89,7 @@ E_x = E.get_Eq()
 dE_dx = np.array(E.differentiate())
 F_x = F.get_Eq()
 
+#solve ODE
 def ode(t, u):
     x = u[0]
     y = eval_function(F_x, x)/eval_function(dE_dx, x)
@@ -101,14 +102,6 @@ solution = solve_ivp(ode, t_span, x0, method='RK45', t_eval=np.linspace(0, 50, 1
 times = solution.t
 values = solution.y[0]
 
-for x in [0.05, 0.1, 0.15]:
-    print(
-        x,
-        eval_function(F_x, x),
-        eval_function(dE_dx, x),
-        eval_function(F_x, x)/eval_function(dE_dx, x)
-    )
-
 plt.plot(times, values, label='x(t)')
 plt.legend()
-#plt.show()
+plt.show()
