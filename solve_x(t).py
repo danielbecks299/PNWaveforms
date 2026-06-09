@@ -9,9 +9,9 @@ from scipy.interpolate import interp1d
 
 #goal here is to build each equation E(x) and F(x) as indivudual arrays with coefficients and powers
 class PNexapansion_x:
-    def __init__(self, M, r, c=1, G=1): #when object is created speed of light (c), grav. const(G) are initialized, nu as well
-        self.M, self.r, self.c, self.G = M, r, c, G
-        self.nu = (2*M)/M**2            #assume equal masses for now
+    def __init__(self, m1, m2, r, c=1, G=1): #when object is created speed of light (c), grav. const(G) are initialized, nu as well
+        self.m1, self.m2, self.r, self.c, self.G = m1, m2, r, c, G
+        self.nu = (m1*m2)/(m1+m2)**2            
 
     def setPowers(self, p):     #p is a a real number that gets interated into powers of x
         if isinstance(p, tuple):
@@ -41,7 +41,7 @@ class PNexapansion_x:
         self.new_p = self.p[1:] - 1 #discard the first element, so i always need to input a zeroth power, even if the coefficient is 0
         self.new_consts = self.consts[1:] * self.p[1:]
 
-        return self.new_p, self.new_consts
+        return np.array([self.new_p, self.new_consts], dtype=np.longdouble)
     
     def get_Eq(self):       #combines arrays and reshapes equation into n x 2 matrix
         y = np.array([self.p, self.consts], dtype=np.longdouble)
@@ -59,55 +59,53 @@ def eval_function(powers_const, x):
 
 #from down on its setting parameters which gets super SUPER messy
 
-E = PNexapansion_x(M=1, r=1)    #create energy equation object
-F = PNexapansion_x(M=1, r=1)
+E = PNexapansion_x(m1=1, m2=1, r=1)    #create energy equation object
+F = PNexapansion_x(m1=1, m2=1, r=1)
 
 #initialize constants from PNpedia
 E_1 = 1
-E_2 = -(3/4)-(E.nu/12)
-E_3 = -(27/8)+(19*E.nu/8)-((E.nu**2)/24)
+E_2 = (-3/4)-(E.nu/12)
+E_3 = (-27/8)+(19*E.nu/8)-((E.nu**2)/24)
+E_coeff = -(0.5)*(E.c)**2*(E.m1+E.m2)
 
 #build energy equation
 E.setPowers((0,1,2,3))
-E.setConstants((0,-E_1, -E_2, -E_3))
+E.setConstants((0, E_1, E_2, E_3))
+E.consts *= E_coeff #that stuff outside the bracket, negative sign included
 
-
-powers_F = (5,6,6.5,7,7.5)
+powers_F = (5,6,6.5, 7, 7.5)
 F_1 = 1
 F_2 = -(1247/336)-((35*F.nu)/12)
 F_3 = 4*np.pi
-F_4 = -(44711/9072)+(9271*F.nu/504)-(65*(F.nu**2)/18)
+F_4 = -(44711/9072)+(9271*F.nu/504)+(65*(F.nu**2)/18)
 F_5 = -(8191*np.pi/672)-(583*np.pi*F.nu/24)
+F_coeff = 32*(F.c**5)*(F.nu**2)/F.G*5
 
 F.setPowers(powers_F)
-F.setConstants((F_1,F_2,F_3,F_4,F_5))
-
+F.setConstants((F_1,F_2,F_3, F_4, F_5))
+F.consts *= F_coeff
 
 #4x2 matrices of constants and powers
 E_x = E.get_Eq()
-dE_dx = np.array(E.differentiate())
+dE_dx = E.differentiate()
 F_x = F.get_Eq()
 
 #solve ODE
 def ode(t, x):
-    y = eval_function(F_x, x)/eval_function(dE_dx, x)
+    xx = float(x[0])
+    y = -eval_function(F_x, xx)/eval_function(dE_dx, xx)
+
     return y
 
-x0 = [0.2]
-t_span = (0, 60)  
-solution = solve_ivp(ode, t_span, x0, method='RK45', t_eval=np.linspace(0, 60, 50))
-
-x = np.linspace(0, 5, 10)
-A = eval_function(dE_dx, x)
-B = eval_function(F_x, x)
-C = eval_function(E_x, x)
+x0 = [0.01]
+limit = 0.2
+t_span = (0, limit)  
+solution = solve_ivp(ode, t_span, x0, method='RK45', t_eval=np.linspace(0, limit, 50))
 
 times = solution.t
 values = solution.y[0]
 
 plt.plot(times, values, label='x(t)')
-#plt.plot(x, A)
-#plt.plot(x, C)
 
 plt.legend()
 plt.show()
