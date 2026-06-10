@@ -63,23 +63,23 @@ E = PNexapansion_x(m1=1, m2=1, r=1)    #create energy equation object
 F = PNexapansion_x(m1=1, m2=1, r=1) 
 
 #initialize constants from PNpedia
-E_1 = 1
-E_2 = (-3/4)-(E.nu/12)
-E_3 = (-27/8)+(19*E.nu/8)-((E.nu**2)/24)
+E_0 = 1
+E_1 = (-3/4)-(E.nu/12)
+E_2 = (-27/8)+(19*E.nu/8)-((E.nu**2)/24)
 
 #build energy equation
-E.setPowers((0,1,2,3))
-E.setConstants((0, E_1, E_2, E_3), alpha = -(0.5)*(E.c)**2*(E.m1+E.m2))
+E.setPowers((0, 1, 2, 3))
+E.setConstants((0, E_0, E_1, E_2), alpha = -(0.5)*(E.c)**2*(E.m1+E.m2))
 
-powers_F = (5, 6, 6.5, 7, 7.5)
-F_1 = 1
-F_2 = -(1247/336)-((35*F.nu)/12)
-F_3 = 4*np.pi
-F_4 = -(44711/9072)+(9271*F.nu/504)+(65*(F.nu**2)/18)
-F_5 = -(8191*np.pi/672)-(583*np.pi*F.nu/24)
+powers_F = (5, 6, 6.5, 7)
+F_0 = 1
+F_1 = -(1247/336)-((35*F.nu)/12)
+F_2 = 4*np.pi
+F_3 = -(44711/9072)+(9271*F.nu/504)+(65*(F.nu**2)/18)
+F_4 = -(8191*np.pi/672)-(583*np.pi*F.nu/24)
 
 F.setPowers(powers_F)
-F.setConstants((F_1, F_2, F_3, F_4, F_5), alpha = 32*(F.c**5)*(F.nu**2)/(F.G*5))
+F.setConstants((F_0, F_1, F_2, F_3), alpha = 32*(F.c**5)*(F.nu**2)/(F.G*5))
 
 #4x2 matrices of constants and powers
 E_x = E.get_Eq()
@@ -99,12 +99,12 @@ def pole_event(t, x):
     return eval_function(dE_dx, x[0])
 
 pole_event.terminal = True
-pole_event.direction = 1
+pole_event.direction = 0
 
-x0 = [0.1]
-limit = 7500
+x0 = [0.15]
+limit = 1000
 t_span = (0, limit)  
-solution = solve_ivp(ode, t_span, x0, events=pole_event, method='RK45', t_eval=np.linspace(0, limit, 50))
+solution = solve_ivp(ode, t_span, x0, events=pole_event, method='RK45', t_eval=np.linspace(0, limit, 10000))
 
 times = solution.t
 values = solution.y[0]
@@ -113,8 +113,7 @@ x = np.linspace(0, 0.3, 15)
 fig, ax = plt.subplots()
 ax.set_xlabel(r"$Time, t$")
 ax.set_ylabel(r"$x=(M\Omega)^{2/3}$")
-ax.legend(title=r"$m_1 = m_2 = 1, c = 1, G = 1, x_0 = 0.15$")
+ax.legend(title=r"$m_1 = m_2 = 1, c = 1, G = 1, x_0 = 0.15$, 2nd Order")
 
 plt.plot(times, values, label='x(t)')
-
 plt.show()
