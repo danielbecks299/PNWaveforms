@@ -23,12 +23,13 @@ H_2_2_t = eval_function(H_2_2_x, values)
 
 #e^im*psi, assume psi_0 = 0
 PSI = PNexapansion_x(m1, m2, r)
+a = 2.5 #factor of x^-(5/2)
 PSI_0 = 1
 PSI_1 = (-(55/384)-(3715/32256))*32*PSI.nu
 PSI_2 = -10*np.pi
-PSI_3 = 1 #correct later
+PSI_3 = -32*PSI.nu*((-27145/32256)-(15293365/(32514048 * PSI.nu)) - (3085*PSI.nu/4608)) #correct later
 
-PSI.setPowers((-2.5, -1.5, -1, -0.5))
+PSI.setPowers((0-a, 1-a, 1.5-a, 2-a))
 PSI.setConstants((PSI_0, PSI_1, PSI_2, PSI_3), alpha= -1/(32*PSI.nu))
 
 PSI_x = PSI.get_Eq()
@@ -43,3 +44,8 @@ def imganinary_exponent(equation, psi_t):
     return y_big
 
 e_PSI_t = imganinary_exponent(PSI, PSI_t)
+
+bleh = e_PSI_t * H_2_2_t
+
+plt.plot(values, bleh)
+plt.show()
