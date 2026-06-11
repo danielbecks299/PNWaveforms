@@ -72,7 +72,7 @@ E_1 = (-3/4)-(E.nu/12)
 E_2 = (-27/8)+(19*E.nu/8)-((E.nu**2)/24)
 
 #build energy equation
-E.setPowers((0, 1, 2, 3))
+E.setPowers(3) #this however is only second order due to the common factor of x
 E.setConstants((0, E_0, E_1, E_2), alpha = -(0.5)*(E.c)**2*(E.m1+E.m2)*E.nu)
 
 powers_F = (5, 6, 6.5, 7)
@@ -105,8 +105,8 @@ def pole_event(t, x):
 pole_event.terminal = True
 pole_event.direction = 0
 
-x0 = [0.15]
-limit = 1000
+x0 = [0.1]
+limit = 2000
 t_span = (0, limit)  
 solution = solve_ivp(ode, t_span, x0, events=pole_event, method='RK45', t_eval=np.linspace(0, limit, 10000))
 
@@ -117,7 +117,7 @@ x = np.linspace(0, 0.3, 15)
 fig, ax = plt.subplots()
 ax.set_xlabel(r"$Time, t$")
 ax.set_ylabel(r"$x=(M\Omega)^{2/3}$")
-ax.legend(title=r"$m_1 = m_2 = 1, c = 1, G = 1, x_0 = 0.15$, 2nd Order")
+ax.legend(title=r"$m_1 = m_2 = 1, c = 1, G = 1, x_0 = 0.1$, 2nd Order")
 
 plt.plot(times, values, label='x(t)')
 plt.show()
