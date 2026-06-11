@@ -12,10 +12,12 @@ H_2_2 = PNexapansion_x(m1, m2, r)
 H_1 = 1
 H_2 = (-107/42) + ((55*H_2_2.nu)/42)
 H_3 = 2*np.pi
+H_4 = (-2173/1512)-((1069*H_2_2.nu)/216)+((2047*(H_2_2.nu**2))/1512)
 
 #only working with 2-PN corrections
-H_2_2.setPowers((1, 2, 2.5))
-H_2_2.setConstants((H_1, H_2, H_3), alpha=np.sqrt(np.pi/5)*H_2_2.nu)
+a = 1
+H_2_2.setPowers((0+a, 1+a, 1.5+a, 2+a))
+H_2_2.setConstants((H_1, H_2, H_3, H_4), alpha=8*np.sqrt(np.pi/5)*H_2_2.nu)
 
 #get H_2_2_x
 H_2_2_x = H_2_2.get_Eq()
@@ -25,9 +27,9 @@ H_2_2_t = eval_function(H_2_2_x, values)
 PSI = PNexapansion_x(m1, m2, r)
 a = 2.5 #factor of x^-(5/2)
 PSI_0 = 1
-PSI_1 = (-(55/384)-(3715/32256))*32*PSI.nu
+PSI_1 = ((-55/384)-(3715/32256))*-32*PSI.nu
 PSI_2 = -10*np.pi
-PSI_3 = -32*PSI.nu*((-27145/32256)-(15293365/(32514048 * PSI.nu)) - (3085*PSI.nu/4608)) #correct later
+PSI_3 = -32*PSI.nu*((-27145/32256)-(15293365/(32514048 * PSI.nu)) - (3085*PSI.nu/4608)) 
 
 PSI.setPowers((0-a, 1-a, 1.5-a, 2-a))
 PSI.setConstants((PSI_0, PSI_1, PSI_2, PSI_3), alpha= -1/(32*PSI.nu))
