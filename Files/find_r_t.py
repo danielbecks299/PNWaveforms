@@ -39,8 +39,10 @@ y = combined_r * np.sin(PSI_x)
 x2 = -combined_r * np.cos(PSI_x)
 y2 = -combined_r * np.sin(PSI_x)
 
+print(x)
+
 plt.figure(figsize=(10, 10))
 plt.plot(x, y)
 plt.plot(x2, y2)
-plt.show()
+#plt.show()
 
