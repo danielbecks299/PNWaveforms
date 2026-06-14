@@ -14,6 +14,7 @@ H_1 = (-107/42) + ((55*H_2_2.nu)/42)
 H_2 = 2*np.pi
 H_3 = (-2173/1512)-((1069*H_2_2.nu)/216)+((2047*(H_2_2.nu**2))/1512)
 
+#solving for l=2, m=1
 H_2_1 = PNexapansion_x(m1, m2, r)
 H_1_0 = 1
 H_1_1 = (-17/28) + ((5*H_2_1.nu)/7)
@@ -76,4 +77,4 @@ h_strain_2 = e_PSI_x_2 * H_2_2_x
 strain_fin = np.real(h_strain_1 + h_strain_2)
 
 plt.plot(times, strain_fin)
-#plt.show()
+plt.show()
