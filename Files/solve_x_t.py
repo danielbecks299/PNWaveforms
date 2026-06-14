@@ -60,8 +60,8 @@ def eval_function(powers_const, x):
 
 #from down on its setting parameters which gets super SUPER messy
 
-m1 = 1
-m2 = 1
+m1 = 0.5
+m2 = 0.5
 r = 1
 
 E = PNexapansion_x(m1, m2, r)    #create energy equation object
@@ -104,12 +104,12 @@ def pole_event(t, x):
     return eval_function(dE_dx, x[0])
 
 pole_event.terminal = True
-pole_event.direction = 0
+pole_event.direction = 1
 
-x0 = [0.0663]
-limit = 50000
+x0 = [0.04177945007178626]
+limit = 500000
 start = 0
-step = 100000
+step = 100000000
 t_span = (start, limit)  
 solution = solve_ivp(ode, t_span, x0, events=pole_event, method='RK45', t_eval=np.linspace(start, limit, step))
 
@@ -122,5 +122,8 @@ ax.set_xlabel(r"$Time, t$")
 ax.set_ylabel(r"$x=(M\Omega)^{2/3}$")
 ax.legend(title=r"$m_1 = m_2 = 1, c = 1, G = 1, x_0 = 0.1$, 2nd Order")
 
-#plt.plot(times, x_vals, label='x(t)')
-#plt.show()
+plt.plot(times, x_vals, label='x(t)')
+plt.show()
+
+#if __name__ == "__main__":
+#    main()
