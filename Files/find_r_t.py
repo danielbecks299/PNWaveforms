@@ -30,7 +30,7 @@ G_2 = 1 - (65*Gamma.nu/12)
 
 Gamma.setConstants((0, G_0, G_1, G_2))
 gamma = eval_function(Gamma.get_Eq(), x_vals)
-r_gamma = (1/2)*(Gamma.G * Gamma.M)/(Gamma.c**2 * gamma)
+r_gamma = (1/2)*(Gamma.G * Gamma.M)/(Gamma.c**2 * gamma) #i dont why the 1/2 needs to be here
 
 #converting to cartesian coordinates using kinetic energy
 #x = combined_r * np.cos(PSI_x)
