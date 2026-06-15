@@ -58,6 +58,22 @@ def eval_function(powers_const, x):
 
     return y_big
 
+#solve ODE
+def ode(t, x):
+    xx = float(x[0])
+
+    y = -eval_function(F_x, xx)/eval_function(dE_dx, xx)
+
+    return y
+
+
+#to deal with the root where dE/dx crosses 0
+def pole_event(t, x):
+    return eval_function(dE_dx, x[0])
+
+pole_event.terminal = True
+pole_event.direction = 1
+
 #from down on its setting parameters which gets super SUPER messy
 
 m1 = 0.5
@@ -91,25 +107,11 @@ E_x = E.get_Eq()
 dE_dx = E.differentiate()
 F_x = F.get_Eq()
 
-#solve ODE
-def ode(t, x):
-    xx = float(x[0])
-
-    y = -eval_function(F_x, xx)/eval_function(dE_dx, xx)
-
-    return y
-
-#to deal with the root where dE/dx crosses 0
-def pole_event(t, x):
-    return eval_function(dE_dx, x[0])
-
-pole_event.terminal = True
-pole_event.direction = 1
-
+#set conditions of ODE
 x0 = [0.04177945007178626]
-limit = 500000
+limit = 500_000
 start = 0
-step = 100000000
+step = 10_000_000
 t_span = (start, limit)  
 solution = solve_ivp(ode, t_span, x0, events=pole_event, method='RK45', t_eval=np.linspace(start, limit, step))
 
