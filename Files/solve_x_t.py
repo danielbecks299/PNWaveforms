@@ -108,21 +108,22 @@ dE_dx = E.differentiate()
 F_x = F.get_Eq()
 
 #set conditions of ODE
-x0 = [0.04177945007178626]
-limit = 500_000
+sim_data = [0.04848075723192143]
+x0 = [0.085]
 start = 0
+limit = 500_000
 step = 10_000_000
+
 t_span = (start, limit)  
 solution = solve_ivp(ode, t_span, x0, events=pole_event, method='RK45', t_eval=np.linspace(start, limit, step))
 
 times = solution.t
 x_vals = solution.y[0]
-x = np.linspace(0, 1, 150)
 
 fig, ax = plt.subplots()
 ax.set_xlabel(r"$Time, t$")
 ax.set_ylabel(r"$x=(M\Omega)^{2/3}$")
-ax.legend(title=r"$m_1 = m_2 = 1, c = 1, G = 1, x_0 = 0.1$, 2nd Order")
+ax.legend(title=f"$m_1 = m_2 = 1, c = 1, G = 1, x_0 = {x0[0]}$, 2nd Order")
 
 plt.plot(times, x_vals, label='x(t)')
 plt.show()
