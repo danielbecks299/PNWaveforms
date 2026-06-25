@@ -9,7 +9,7 @@ from scipy.interpolate import interp1d
 
 #goal here is to build each equation E(x) and F(x) as indivudual arrays with coefficients and powers
 class PNexapansion_x:
-    def __init__(self, m1, m2, r, c=1, G=1): #when object is created speed of light (c), grav. const(G) are initialized, nu as well
+    def __init__(self, m1=1, m2=1, r=1, c=1, G=1): #when object is created speed of light (c), grav. const(G) are initialized, nu as well
         self.m1, self.m2, self.r, self.c, self.G = m1, m2, r, c, G
         self.M = self.m1 + self.m2
         self.nu = (m1*m2)/(m1+m2)**2            
@@ -17,6 +17,8 @@ class PNexapansion_x:
     def setPowers(self, p):     #p is a a real number that gets interated into powers of x
         if isinstance(p, tuple):
             self.p = np.array(p)
+        elif isinstance(p, np.ndarray):
+            self.p = p
         else:
             self.p = np.zeros(p+1)  #array of powers of x
             for P in range(p+1):    #arrays start at zero, we want x^0+...+x^n
@@ -37,6 +39,12 @@ class PNexapansion_x:
             raise ValueError(msg)
 
         return self.consts
+    
+    def setNu(self, nu):
+        self.nu = nu
+
+    def setM(self, M):
+        self.M = M
     
     def differentiate(self): #this is the differentiation  
         self.new_p = self.p[1:] - 1 #discard the first element, so i always need to input a zeroth power, even if the coefficient is 0
@@ -76,17 +84,16 @@ pole_event.direction = 1
 
 #from down on its setting parameters which gets super SUPER messy
 
-m1 = 0.5
-m2 = 0.5
-r = 1
+m1 = 0.886
+m2 = 0.113
 
-E = PNexapansion_x(m1, m2, r)    #create energy equation object
-F = PNexapansion_x(m1, m2, r) 
+E = PNexapansion_x(m1, m2)    #create energy equation object
+F = PNexapansion_x(m1, m2) 
 
 #initialize constants from PNpedia
 E_0 = 1
-E_1 = (-3/4)-(E.nu/12)
-E_2 = (-27/8)+(19*E.nu/8)-((E.nu**2)/24)
+E_1 = (-3/4) - (E.nu/12)
+E_2 = (-27/8) + (19*E.nu/8) - ((E.nu**2)/24)
 
 #build energy equation
 E.setPowers(3) #this however is only second order due to the common factor of x
@@ -94,9 +101,9 @@ E.setConstants((0, E_0, E_1, E_2), alpha = -(0.5)*(E.c)**2*(E.M)*E.nu)
 
 powers_F = (5, 6, 6.5, 7)
 F_0 = 1
-F_1 = (-1247/336)-((35*F.nu)/12)
+F_1 = (-1247/336) - ((35*F.nu)/12)
 F_2 = 4*np.pi
-F_3 = -(44711/9072)+(9271*F.nu/504)+(65*(F.nu**2)/18)
+F_3 = -(44711/9072) + (9271*F.nu/504) + (65*(F.nu**2)/18)
 #F_4 = -(8191*np.pi/672)-(583*np.pi*F.nu/24)
 
 F.setPowers(powers_F)
@@ -108,22 +115,24 @@ dE_dx = E.differentiate()
 F_x = F.get_Eq()
 
 #set conditions of ODE
-sim_data = [0.04848075723192143]
-x0 = [0.085]
+x0 = [0.07482936381913723]
 start = 0
 limit = 500_000
 step = 10_000_000
-
 t_span = (start, limit)  
-solution = solve_ivp(ode, t_span, x0, events=pole_event, method='RK45', t_eval=np.linspace(start, limit, step))
 
-times = solution.t
-x_vals = solution.y[0]
+def x_t(x0, start, limit, step):
+    sol = solve_ivp(ode, t_span, x0, events=pole_event, method='RK45', t_eval=np.linspace(start, limit, step))
+    solution = sol.t, sol.y[0]
 
-fig, ax = plt.subplots()
-ax.set_xlabel(r"$Time, t$")
-ax.set_ylabel(r"$x=(M\Omega)^{2/3}$")
-ax.legend(title=f"$m_1 = m_2 = 1, c = 1, G = 1, x_0 = {x0[0]}$, 2nd Order")
+    return solution
+
+times = x_t(x0, start, limit, step)[0]
+x_vals = x_t(x0, start, limit, step)[1]
+
+plt.xlabel(r"$Time, t$")
+plt.ylabel(r"$x=(M\Omega)^{2/3}$")
+plt.legend(title=f"$m_1 ={E.m1}, m_2 = {E.m2}, c = 1, G = 1, x_0 = {x0[0]}$, 2nd Order")
 
 plt.plot(times, x_vals, label='x(t)')
 plt.show()

@@ -1,5 +1,4 @@
 import numpy as np
-import math
 import matplotlib.pyplot as plt
 
 from solve_x_t import PNexapansion_x
@@ -162,11 +161,14 @@ h_strain_33 = 0
 h_strain_33 = np.longdouble(h_strain_33)
 h_strain_33 = e_PSI_x_33 * H_3_3_x
 
-strain_fin = np.real(h_strain_20+h_strain_21+h_strain_22+h_strain_31+h_strain_32+h_strain_33)
+total_h_t = np.asarray((H_2_0_X, H_2_1_X, H_2_2_X, H_3_1_X, H_3_2_X, H_3_3_X))
+total_psi_t = np.asarray((e_PSI_x_0, e_PSI_x_1, e_PSI_x_2, e_PSI_x_31, e_PSI_x_32, e_PSI_x_33))
+
+strain_fin = h_strain_20 + h_strain_21 + h_strain_22 + h_strain_31 + h_strain_32 + h_strain_33
 
 plt.xlabel(r"$Time, t$")
 plt.ylabel(r"$h$, strain")
-plt.legend(title=f"$m_1 = m_2 = {PSI.m1}, c = 1, G = 1, x_0 = {x0[0]}$, 2nd Order")
+plt.legend(title=f"$m_1 ={PSI.m1}, m_2 = {PSI.m2}, c = 1, G = 1, x_0 = {x0[0]}$, 2nd Order")
 
 plt.plot(times, strain_fin)
 plt.show()

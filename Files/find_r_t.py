@@ -9,7 +9,7 @@ from find_h_t import PSI_x
 
 E_binding = eval_function(E.get_Eq(), x_vals)
 
-#find r, K = -binding_energy, K = -Gm1m2/r
+#find r, K = -binding_energy = -Gm1m2/r
 def find_r_using_K(E):
     r = 0
     r_big = np.longdouble(r)
@@ -51,13 +51,13 @@ y = r1 * np.sin(PSI_x)
 x2 = -r2 * np.cos(PSI_x)
 y2 = -r2 * np.sin(PSI_x)
 
-fig, ax = plt.subplots()
-ax.set_xlabel(r"$x$")
-ax.set_ylabel(r"$y$")
+plt.xlabel(r"$x$")
+plt.ylabel(r"$y$")
 
 plt.plot(x, y, label=f'Mass 1 = {Gamma.m1}, $x_0 = {x_vals[0]}$')
 plt.plot(x2, y2, label=f'Mass 2 = {Gamma.m2}')
 plt.legend()
+
 plt.show()
 
 
