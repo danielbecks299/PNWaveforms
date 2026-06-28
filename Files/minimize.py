@@ -1,14 +1,15 @@
 import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.interpolate import CubicSpline, PchipInterpolator
+from scipy.optimize import minimize
 
 from solve_x_t import PNexapansion_x, E, F, ode, eval_function, pole_event, limit, t_span, step, E_0, E_1, E_2, F_0, F_1, F_2, F_3
-from find_h_t import H_2_2_X, PSI_X, imganinary_exponent, experiment
+from find_h_t import H_2_2_X, PSI_X, imganinary_exponent, experiment, h_strain_22
 
 dummy_E = PNexapansion_x()
 dummy_F = PNexapansion_x()
 
-def f_min(x0, M, nu, target_strain):
+def f_min(x0, M, nu, target_strain=experiment):
     #building the PNequations that will change with the minimization algorithm
     dummy_E.setM(M)
     dummy_E.setNu(nu)
@@ -33,17 +34,23 @@ def f_min(x0, M, nu, target_strain):
     sol = solve_ivp(ode, t_span, x0, events=pole_event, method='RK45', t_eval=np.linspace(0, limit, step)) #where are these terms coming from....
     solution_dummy = sol.y[0] #just getting the x(t) values
 
+    if not sol.success:
+        return np.inf
+
     #solving the PN equations for strain
     solution_dummy_h22 = eval_function(H_2_2_X, solution_dummy)
     solution_dummy_psi_x = eval_function(PSI_X, solution_dummy)
     e_PSI_x_2 = np.real(imganinary_exponent(solution_dummy_psi_x, 2))
-    dummy_h_strain = e_PSI_x_2 * solution_dummy_h22
+    dummy_h_strain =np.real(e_PSI_x_2 * solution_dummy_h22)
 
     #interpolation so that each trial and the final output match
 
     # Find overlapping time interval
     t_min = max(target_strain[0].min(), sol.t.min())
     t_max = min(target_strain[0].max(), sol.t.max())
+
+    if t_max <= t_min:
+        return np.inf
 
     # Choose a common grid
     N = max(len(target_strain[0]), len(sol.t))
@@ -56,7 +63,7 @@ def f_min(x0, M, nu, target_strain):
     difference_vector = original_x_interpolated - solution_dummy_interpolated
 
     return np.linalg.norm(difference_vector)
-    
 
-print(f_min([0.1], 1, 0.25, experiment))
-#print(type(E.p))
+x0 = [0.07]
+res = minimize(f_min, x0, method='Nelder-Mead', args=(1, 0.25, experiment), options={'xatol': 1e-8, 'disp': True})
+print(res.x)

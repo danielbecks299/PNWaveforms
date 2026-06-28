@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from solve_x_t import PNexapansion_x
-from solve_x_t import m1, m2, r
+from solve_x_t import m1, m2
 from solve_x_t import x_vals, eval_function, E, E_x
 
 from find_h_t import PSI_x
@@ -19,7 +19,7 @@ def find_r_using_K(E):
     return r_big
 
 #using gamma PN-parameters
-Gamma = PNexapansion_x(m1, m2, r)
+Gamma = PNexapansion_x(m1, m2)
 Gamma.setPowers(3)
 
 G_0 = 1
