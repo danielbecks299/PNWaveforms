@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 from scipy.interpolate import CubicSpline, PchipInterpolator
 from scipy.optimize import minimize
@@ -6,23 +7,23 @@ from scipy.optimize import minimize
 from solve_x_t import PNexapansion_x, E, F, ode, eval_function, pole_event, limit, t_span, step, E_0, E_1, E_2, F_0, F_1, F_2, F_3
 from find_h_t import H_2_2_X, PSI_X, imganinary_exponent, experiment, h_strain_22
 
-dummy_E = PNexapansion_x()
-dummy_F = PNexapansion_x()
-
 def f_min(x0, M, nu, target_strain=experiment):
     #building the PNequations that will change with the minimization algorithm
+    dummy_E = PNexapansion_x()
+    dummy_F = PNexapansion_x()
+
     dummy_E.setM(M)
     dummy_E.setNu(nu)
     dummy_E.setPowers(E.p)
-    dummy_E.setConstants((0, E_0, E_1, E_2), alpha = -(0.5)*(E.c)**2*(E.M)*E.nu)
+    dummy_E.setConstants((0, E_0, E_1, E_2), alpha = -(0.5)*(dummy_E.c)**2*(M)*nu)
     dummy_dE_dx = dummy_E.differentiate()
 
     dummy_F.setM(M)
     dummy_F.setNu(nu)
     dummy_F.setPowers(F.p)
-    dummy_F.setConstants((F_0, F_1, F_2, F_3), alpha = 32*(F.c**5)*(F.nu**2)/(5*F.G)) 
+    dummy_F.setConstants((F_0, F_1, F_2, F_3), alpha = 32*(dummy_F.c**5)*(nu**2)/(5*dummy_F.G)) 
 
-    dummy_F_x = F.get_Eq()
+    dummy_F_x = dummy_F.get_Eq()
 
     #had to redefine the ODE equations in terms of these 'dummy' objects
     def ode(t, x):
@@ -60,10 +61,14 @@ def f_min(x0, M, nu, target_strain=experiment):
     original_x_interpolated = np.interp(t_common, target_strain[0], target_strain[1])
     solution_dummy_interpolated = np.interp(t_common, sol.t, dummy_h_strain)
 
-    difference_vector = original_x_interpolated - solution_dummy_interpolated
+    corr = np.correlate(original_x_interpolated, solution_dummy_interpolated, mode='full')
+    lag = np.argmax(corr) - (len(solution_dummy_interpolated)-1)
+    solution_aligned = np.roll(solution_dummy_interpolated, lag)
+
+    difference_vector = original_x_interpolated - solution_aligned
 
     return np.linalg.norm(difference_vector)
 
-x0 = [0.07]
+x0 = [0.05]
 res = minimize(f_min, x0, method='Nelder-Mead', args=(1, 0.25, experiment), options={'xatol': 1e-8, 'disp': True})
 print(res.x)
