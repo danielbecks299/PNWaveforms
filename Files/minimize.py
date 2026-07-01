@@ -4,21 +4,30 @@ from scipy.integrate import solve_ivp
 from scipy.interpolate import CubicSpline, PchipInterpolator
 from scipy.optimize import minimize
 
-from solve_x_t import PNexapansion_x, E, F, eval_function, pole_event, limit, t_span, step, E_0, E_1, E_2, F_0, F_1, F_2, F_3, x0
-from find_h_t import H_2_2_X, PSI_X, imganinary_exponent, experiment
+from solve_x_t import PNexapansion_x, E, F, eval_function, pole_event, limit, t_span, step, x0
+from find_h_t import PSI, imganinary_exponent, experiment
 
-def f_min(parameters, x0=x0, target_strain=experiment, plot=False):
+def f_min(parameters, x0 = x0, target_strain=experiment, plot=False):
     #building the PNequations that will change with the minimization algorithm
     M, nu = parameters
 
     dummy_E = PNexapansion_x()
     dummy_F = PNexapansion_x()
 
+    E_0 = 1
+    E_1 = (-3/4) - (nu/12)
+    E_2 = (-27/8) + (19*nu/8) - ((nu**2)/24)
+
     dummy_E.setM(M)
     dummy_E.setNu(nu)
     dummy_E.setPowers(E.p)
     dummy_E.setConstants((0, E_0, E_1, E_2), alpha = -(0.5)*(dummy_E.c)**2*(M)*nu)
     dummy_dE_dx = dummy_E.differentiate()
+
+    F_0 = 1
+    F_1 = (-1247/336) - ((35*nu)/12)
+    F_2 = 4*np.pi
+    F_3 = -(44711/9072) + (9271*nu/504) + (65*(nu**2)/18)
 
     dummy_F.setM(M)
     dummy_F.setNu(nu)
@@ -41,13 +50,84 @@ def f_min(parameters, x0=x0, target_strain=experiment, plot=False):
         return np.inf
 
     #solving the PN equations for strain
-    solution_dummy_h22 = eval_function(H_2_2_X, solution_dummy)
-    solution_dummy_psi_x = eval_function(PSI_X, solution_dummy)
-    e_PSI_x_2 = np.real(imganinary_exponent(solution_dummy_psi_x, 2))
-    dummy_h_strain =np.real(e_PSI_x_2 * solution_dummy_h22)
+    PSI_0 = 1
+    PSI_1 = ((-55/384)-(3715/32256))*(-32)*nu
+    PSI_2 = -10*np.pi
+    PSI_3 = -32*nu*((-27145/32256)-(15293365/(32514048 * nu)) - (3085*nu/4608)) 
+
+    dummy_PSI = PNexapansion_x()
+    dummy_PSI.setM(M)
+    dummy_PSI.setNu(nu)
+    dummy_PSI.setPowers(PSI.p)
+    dummy_PSI.setConstants((PSI_0, PSI_1, PSI_2, PSI_3), alpha= -1/(32*nu))
+
+    dummy_PSI_X = PSI.get_Eq()
+    dummy_PSI_x = eval_function(dummy_PSI_X, solution_dummy)
+
+    dummy_e_PSI_x_1 = np.real(imganinary_exponent(dummy_PSI_x, 1))
+    dummy_e_PSI_x_2 = np.real(imganinary_exponent(dummy_PSI_x, 2))
+    dummy_e_PSI_x_3 = np.real(imganinary_exponent(dummy_PSI_x, 3))
+
+    #solving for H_2,1
+    dummy_H21 = PNexapansion_x()
+    Delta = nu*(1-(4*nu))
+
+    if Delta <= 0:
+        delta = 0
+    else:
+        delta = np.sqrt(Delta)
+
+    b = 1
+    H_1_0 = 1
+    H_1_1 = (-17/28) + ((5*nu)/7)
+    H_1_2 = (-1j/2) + np.pi - (2j*np.log10(2))
+    H_1_3 = (-43/126) - ((509*nu)/126) + ((79 * (nu**2))/168)
+
+    dummy_H21.setPowers((b, 1+b, 1.5+b, 2+b))
+    dummy_H21.setConstants((H_1_0, H_1_1, H_1_2, H_1_3), alpha = ((8j/3)*np.sqrt(np.pi/5)*delta))
+    dummy_H21_X = dummy_H21.get_Eq()
+    dummy_H21_x = eval_function(dummy_H21_X, solution_dummy)
+
+    dummy_h_strain_21 =np.real(dummy_e_PSI_x_1 * dummy_H21_x)
+
+    #solving for H_2,2
+    dummy_H22 = PNexapansion_x()
+
+    H_0 = 1
+    H_1 = (-107/42) + ((55*nu)/42)
+    H_2 = 2*np.pi
+    H_3 = (-2173/1512) - ((1069*nu)/216) + ((2047*(nu**2))/1512)
+
+    a = 1
+    dummy_H22.setPowers((a, 1+a, 1.5+a, 2+a))
+    dummy_H22.setConstants((H_0, H_1, H_2, H_3), alpha=8*np.sqrt(np.pi/5)*nu)
+    dummy_H22_X = dummy_H22.get_Eq()
+    dummy_H22_x = eval_function(dummy_H22_X, solution_dummy)
+
+    dummy_h_strain_22 =np.real(dummy_e_PSI_x_2 * dummy_H22_x)
+
+    #solving for H_3,3
+    dummy_H33 = PNexapansion_x()
+    dummy_H33.setM(M)
+    dummy_H33.setNu(nu)
+
+    f = 1.5
+    H_3_3_0 = 1
+    H_3_3_1 = -4 + (2*nu)
+    H_3_3_2 = -(21j/5) + (3*np.pi) - (6j*np.log10(2)) + (6j*np.log10(3))
+    H_3_3_3 = (123/110) - (1838*nu/165) + (887*nu**2/330)
+
+    dummy_H33.setPowers((f, 1+f, 1.5+f, 2+f))
+    dummy_H33.setConstants((H_3_3_0, H_3_3_1, H_3_3_2, H_3_3_3), alpha = (-3j*delta*nu*np.sqrt((6*np.pi)/7)))
+    dummy_H33_X = dummy_H33.get_Eq()
+    dummy_H33_x = eval_function(dummy_H33_X, solution_dummy)
+
+    dummy_h_strain_33 =np.real(dummy_e_PSI_x_3 * dummy_H33_x)
+
+    #sum them
+    dummy_h_strain = dummy_h_strain_21 + dummy_h_strain_22 + dummy_h_strain_33
 
     #interpolation so that each trial and the final output match
-
     # Find overlapping time interval
     t_min = max(target_strain[0].min(), sol.t.min())
     t_max = min(target_strain[0].max(), sol.t.max())
@@ -64,26 +144,26 @@ def f_min(parameters, x0=x0, target_strain=experiment, plot=False):
     solution_dummy_interpolated = np.interp(t_common, sol.t, dummy_h_strain)
 
     #finding and fixing the lag between the actual waveform and test waveforms
-    # corr = np.correlate(original_strain_interpolated, solution_dummy_interpolated, mode='full')
-    # lag = np.argmax(corr) - (len(solution_dummy_interpolated)-1)
-    # dt = t_common[1] - t_common[0]
-    # t_shifted = t_common + lag * dt
+    corr = np.correlate(original_strain_interpolated, solution_dummy_interpolated, mode='full')
+    lag = np.argmax(corr) - (len(solution_dummy_interpolated)-1)
+    dt = t_common[1] - t_common[0]
+    t_shifted = t_common + lag * dt
 
-    # solution_aligned = np.interp(t_common, t_shifted, solution_dummy_interpolated, left=0.0, right=0.0)
+    solution_aligned = np.interp(t_common, t_shifted, solution_dummy_interpolated, left=0.0, right=0.0)
 
     if plot:
         plt.plot(t_common, original_strain_interpolated, label='target')
-        plt.plot(t_common, solution_dummy_interpolated, label='attempt')
+        plt.plot(t_common, solution_aligned, label='attempt')
         plt.legend()
         plt.show()
 
-    target_norm = abs(original_strain_interpolated)
+    target_norm = np.abs(original_strain_interpolated)
 
-    difference_vector = abs(original_strain_interpolated) - abs(solution_dummy_interpolated)
+    difference_vector = np.abs(original_strain_interpolated) - np.abs(solution_aligned)
 
     return np.linalg.norm(difference_vector) / np.linalg.norm(target_norm)
 
-initial = [0.85, 0.2]
+initial = [0.8, 0.15]
 
 # M_values = np.arange(0.85, 1.2, 0.01)
 # f_values = [f_min(M_value, 0.25, x0, experiment, False) for M_value in M_values]
@@ -92,7 +172,7 @@ initial = [0.85, 0.2]
 # plt.yscale('log')
 # plt.show()
 
-res = minimize(f_min, initial, method='Nelder-Mead', args=(x0, experiment), options={'xatol': 1e-18, 'disp': True})
+res = minimize(f_min, initial, method='Nelder-Mead', args=(x0, experiment), options={'xatol': 1e-15, 'disp': True})
 print(res.x, res.fun)
 f_min(res.x, x0, experiment, True)
 
