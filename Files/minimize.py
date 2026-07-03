@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 from scipy.interpolate import CubicSpline, PchipInterpolator
-from scipy.optimize import minimize, Bounds
+from scipy.optimize import minimize, differential_evolution, Bounds
+from scipy.signal import find_peaks, correlate
 
 from solve_x_t import PNexapansion_x, E, F, eval_function, pole_event, limit, t_span, step, x0
 from find_h_t import PSI, imganinary_exponent, experiment
@@ -46,10 +47,11 @@ def f_min(parameters, target_strain=experiment, plot=False):
         return y
 
     sol = solve_ivp(ode, t_span, x0, events=pole_event, method='RK45', t_eval=np.linspace(0, limit, step)) 
-    solution_dummy = sol.y[0] #just getting the x(t) values
 
-    if not sol.success:
+    if (not sol.success) or sol.y.size == 0:
         return np.inf
+
+    solution_dummy = sol.y[0] #just getting the x(t) values
 
     #solving the PN equations for strain
     PSI_0 = 1
@@ -119,14 +121,6 @@ def f_min(parameters, target_strain=experiment, plot=False):
     #sum them
     dummy_h_strain = dummy_h_strain_21 + dummy_h_strain_22 + dummy_h_strain_33
 
-    #interpolation so that each trial and the final output match
-    # Find overlapping time interval
-    t_min = max(target_strain[0].min(), sol.t.min())
-    t_max = min(target_strain[0].max(), sol.t.max())
-
-    if t_max <= t_min:
-        return np.inf
-
     # Choose a common grid
     t_common = target_strain[0]
 
@@ -134,13 +128,24 @@ def f_min(parameters, target_strain=experiment, plot=False):
     original_strain_interpolated = np.interp(t_common, target_strain[0], target_strain[1])
     solution_dummy_interpolated = np.interp(t_common, sol.t, dummy_h_strain)
 
-    #finding and fixing the lag between the actual waveform and test waveforms
-    corr = np.correlate(original_strain_interpolated, solution_dummy_interpolated, mode='full')
-    lag = np.argmax(corr) - (len(solution_dummy_interpolated)-1)
-    dt = t_common[1] - t_common[0]
-    t_shifted = t_common + lag * dt
+    target = original_strain_interpolated.copy()
+    trial = solution_dummy_interpolated.copy()
 
-    solution_aligned = np.interp(t_common, t_shifted, solution_dummy_interpolated, left=0.0, right=0.0)
+    #normalization prioritizes finding the best timing as amplitude biases are disregarded and recalculated in the difference_vector
+    target /= np.linalg.norm(target)
+    trial /= np.linalg.norm(trial)
+
+    #find the best time shift
+    corr = correlate(target, trial, mode="full")
+    shift = np.argmax(corr) - (len(trial) - 1)
+
+    dt = shift * (t_common[1] - t_common[0]) #the subtraction is to find the timestep
+    t_shifted = t_common + dt
+
+    solution_aligned = np.interp(t_common, t_shifted, solution_dummy_interpolated, left=0, right=0)
+
+    target_norm = original_strain_interpolated
+    difference_vector = original_strain_interpolated - solution_aligned
 
     if plot:
         plt.plot(t_common, original_strain_interpolated, label='target')
@@ -148,20 +153,16 @@ def f_min(parameters, target_strain=experiment, plot=False):
         plt.legend()
         plt.show()
 
-    target_norm = original_strain_interpolated
-
-    difference_vector = original_strain_interpolated - solution_aligned
-
     return np.linalg.norm(difference_vector) / np.linalg.norm(target_norm)
 
-initial = np.array([0.9, 0.2, 0.06])
+initial = np.array([1.49977434, 0.22458572, 0.07467666])
 
-initial_simplex = np.array([
-    initial,
-    initial + [0.1, 0, 0],
-    initial + [0, 0.1, 0],
-    initial + [0, 0, 0.001],
-])
+# initial_simplex = np.array([
+#     initial,
+#     initial + [0.1, 0, 0],
+#     initial + [0, 0.1, 0],
+#     initial + [0, 0, 0.01],
+# ])
 
 # M_values = np.arange(0.85, 1.2, 0.01)
 # f_values = [f_min(M_value, 0.25, x0, experiment, False) for M_value in M_values]
@@ -172,7 +173,7 @@ initial_simplex = np.array([
 
 bnds = Bounds([0, 0, 0], [np.inf, 0.25, 0.2])
 
-res = minimize(f_min, initial, method='Nelder-Mead', args=(experiment), bounds = bnds, options={"initial_simplex": initial_simplex, 'xatol': 1e-11, 'fatol': 1e-11, 'maxfev': 10000, 'maxiter': 10000, 'disp': True})
+res = minimize(f_min, initial, method='Nelder-Mead', args=(experiment), bounds = bnds, options={'xatol': 1e-12, 'fatol': 1e-12, 'maxfev': 10000, 'maxiter': 10000, 'disp': True})
 print(res.x, res.fun)
 f_min(res.x, experiment, True)
 
