@@ -11,6 +11,7 @@ from find_h_t import PSI, imganinary_exponent, experiment
 dummy_E = PNexapansion_x()
 dummy_F = PNexapansion_x()
 dummy_PSI = PNexapansion_x()
+dummy_H20 = PNexapansion_x()
 dummy_H21 = PNexapansion_x()
 dummy_H22 = PNexapansion_x()
 dummy_H33 = PNexapansion_x()
@@ -65,12 +66,27 @@ def f_min(parameters, target_strain=experiment, plot=False):
     dummy_PSI_X = dummy_PSI.get_Eq()
     dummy_PSI_x = eval_function(dummy_PSI_X, solution_dummy)
 
+    dummy_e_PSI_x_0 = np.real(imganinary_exponent(dummy_PSI_x, 0))
     dummy_e_PSI_x_1 = np.real(imganinary_exponent(dummy_PSI_x, 1))
     dummy_e_PSI_x_2 = np.real(imganinary_exponent(dummy_PSI_x, 2))
     dummy_e_PSI_x_3 = np.real(imganinary_exponent(dummy_PSI_x, 3))
 
+    #solving for H_2,0
+    b = 1
+    H_0_0 = 1
+    H_0_1 = -(4075/4032) - ((67*nu)/48)
+    H_0_2 = -(151877213/67060224) - ((123815*nu)/44352) + ((205*nu**2)/352)
+
+    c = 1
+    dummy_H20.setPowers((c, 1+c, 2+c))
+    dummy_H20.setConstants((H_0_0, H_0_1, H_0_2))
+    dummy_H20_X = dummy_H20.get_Eq()
+    dummy_H20_x = eval_function(dummy_H20_X, solution_dummy)
+
+    dummy_h_strain_20 =np.real(dummy_e_PSI_x_0 * dummy_H20_x)
+
     #solving for H_2,1
-    Delta = nu*(1-(4*nu))
+    Delta = (1-(4*nu))
 
     if Delta <= 0:
         delta = 0
@@ -119,7 +135,7 @@ def f_min(parameters, target_strain=experiment, plot=False):
     dummy_h_strain_33 =np.real(dummy_e_PSI_x_3 * dummy_H33_x)
 
     #sum them
-    dummy_h_strain = dummy_h_strain_21 + dummy_h_strain_22 + dummy_h_strain_33
+    dummy_h_strain = dummy_h_strain_20 + dummy_h_strain_21 + dummy_h_strain_22 + dummy_h_strain_33
 
     # Choose a common grid
     t_common = target_strain[0]
@@ -143,9 +159,8 @@ def f_min(parameters, target_strain=experiment, plot=False):
     t_shifted = t_common + dt
 
     solution_aligned = np.interp(t_common, t_shifted, solution_dummy_interpolated, left=0, right=0)
-
-    target_norm = original_strain_interpolated
-    difference_vector = original_strain_interpolated - solution_aligned
+    target_norm = np.abs(original_strain_interpolated)
+    difference_vector = (original_strain_interpolated - solution_aligned)
 
     if plot:
         plt.plot(t_common, original_strain_interpolated, label='target')
@@ -155,37 +170,54 @@ def f_min(parameters, target_strain=experiment, plot=False):
 
     return np.linalg.norm(difference_vector) / np.linalg.norm(target_norm)
 
-initial = np.array([1.49977434, 0.22458572, 0.07467666])
+bnds = Bounds([0, 0, 0], [np.inf, 0.25, 0.2])
+
+bounds = [
+    (0.5, 10.0),     # M
+    (0.0, 0.25),   # nu
+    (0.0, 0.15)    # x0
+]
+
+result = differential_evolution(f_min, bounds, maxiter=100, popsize=15, polish=False)
+print(result.x, result.fun)
+f_min(result.x, experiment, True)
+
+#manually find the most suitable x0
+# x_values = np.linspace(0.067, 0.082, 1000)
+# errors = []
+
+#initial guesses
+# M = 0.8
+# nu = 0.21
+
+# for x in x_values:
+#     errors.append(f_min([M, nu, x]))
+
+# best_x0 = x_values[np.argmin(errors)]
+# print(best_x0)
+
+# initial = np.array([M, nu, best_x0])
 
 # initial_simplex = np.array([
 #     initial,
 #     initial + [0.1, 0, 0],
-#     initial + [0, 0.1, 0],
-#     initial + [0, 0, 0.01],
+#     initial + [0, 0.01, 0],
+#     initial + [0, 0, 0.005],
 # ])
 
-# M_values = np.arange(0.85, 1.2, 0.01)
-# f_values = [f_min(M_value, 0.25, x0, experiment, False) for M_value in M_values]
-# print(f_values)
-# plt.plot(M_values, f_values)
-# plt.yscale('log')
-# plt.show()
+# res = minimize(f_min, initial, method='Nelder-Mead', args=(experiment), bounds = bnds, options={'initial_simplex': initial_simplex, 'xatol': 1e-10, 'fatol': 1e-10, 'maxfev': 2000, 'maxiter': 2000, 'disp': True})
+# print(res.x, res.fun)
+# f_min(res.x, experiment, True)
 
-bnds = Bounds([0, 0, 0], [np.inf, 0.25, 0.2])
+# Ms = np.linspace(0.8, 1.2, 200)
+# vals = [f_min([M, 0.25, 0.0748]) for M in Ms]
 
-res = minimize(f_min, initial, method='Nelder-Mead', args=(experiment), bounds = bnds, options={'xatol': 1e-12, 'fatol': 1e-12, 'maxfev': 10000, 'maxiter': 10000, 'disp': True})
-print(res.x, res.fun)
-f_min(res.x, experiment, True)
+# nus = np.linspace(0.15, 0.25, 200)
+# vals = [f_min([1.0, nu, 0.0748]) for nu in nus]
 
-# xs = np.linspace(0.03, 0.13, 50)
-
-# vals = [f_min([1, 0.25, x]) for x in xs
-
-# plt.plot(xs, vals)
-# plt.grid()
+# plt.plot(Ms,vals)
+# plt.plot(nus,vals)
 # plt.show()
 
 #Newton-CG
 #Powell
-
-
