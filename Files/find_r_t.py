@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from solve_x_t import PNexapansion_x
-from solve_x_t import m1, m2
+from solve_x_t import m1, m2, x0
 from solve_x_t import x_vals, eval_function, E, E_x
 
 from find_h_t import PSI_x
@@ -19,8 +19,12 @@ def find_r_using_K(E):
     return r_big
 
 
-def get_trajectories(m1, m2, nu):
-    #using gamma PN-parameters
+def get_trajectories(M, nu, x0, x_vals, PSI_x):
+    #using gamma PN-parameters'
+    delta = np.sqrt(1 - 4*nu)
+    m1 = 0.5 * M * (1 + delta)
+    m2 = 0.5 * M * (1 - delta)
+    
     Gamma = PNexapansion_x(m1, m2)
     Gamma.setPowers(3)
     Gamma.setNu(nu)
@@ -57,12 +61,12 @@ def get_trajectories(m1, m2, nu):
     plt.xlabel(r"$x$")
     plt.ylabel(r"$y$")
 
-    plt.plot(x, y, label=f'Mass 1 = {Gamma.m1}, $x_0 = {x_vals[0]}$')
+    plt.plot(x, y, label=f'Mass 1 = {Gamma.m1}, $x_0 = {x0}$')
     plt.plot(x2, y2, label=f'Mass 2 = {Gamma.m2}')
     plt.legend()
 
     plt.show()
 
-    return [x,y,x2,y2]
+    return 0
 
-get_trajectories(m1, m2, E.nu)
+get_trajectories(E.M, E.nu, x0, x_vals, PSI_x)

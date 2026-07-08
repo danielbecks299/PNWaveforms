@@ -1,13 +1,18 @@
 import numpy as np
+import time
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 from scipy.interpolate import CubicSpline, PchipInterpolator
 from scipy.optimize import minimize, differential_evolution, Bounds
 from scipy.signal import find_peaks, correlate
 
-from solve_x_t import PNexapansion_x, E, F, eval_function, pole_event, limit, t_span, step, x0
-from find_h_t import PSI, imganinary_exponent, experiment
+from solve_x_t import PNexapansion_x, E, F, eval_function, pole_event, limit, t_span, step, x_t
+from find_h_t import PSI, imganinary_exponent, experiment, PSI_x
+from find_r_t import get_trajectories
 
+start_time = time.time()
+
+#initializing variables
 dummy_E = PNexapansion_x()
 dummy_F = PNexapansion_x()
 dummy_PSI = PNexapansion_x()
@@ -16,7 +21,7 @@ dummy_H21 = PNexapansion_x()
 dummy_H22 = PNexapansion_x()
 dummy_H33 = PNexapansion_x()
 
-def f_min(parameters, target_strain=experiment, plot=False):
+def f_min(parameters, target_strain=experiment, plot=False, return_data=False):
     #building the PNequations that will change with the minimization algorithm
     M = parameters[0]
     nu = parameters[1]
@@ -160,7 +165,7 @@ def f_min(parameters, target_strain=experiment, plot=False):
 
     solution_aligned = np.interp(t_common, t_shifted, solution_dummy_interpolated, left=0, right=0)
     target_norm = np.abs(original_strain_interpolated)
-    difference_vector = (original_strain_interpolated - solution_aligned)
+    difference_vector = original_strain_interpolated - solution_aligned
 
     if plot:
         plt.plot(t_common, original_strain_interpolated, label='target')
@@ -168,19 +173,25 @@ def f_min(parameters, target_strain=experiment, plot=False):
         plt.legend()
         plt.show()
 
+    if return_data:
+        return solution_dummy, dummy_PSI_x
+    
     return np.linalg.norm(difference_vector) / np.linalg.norm(target_norm)
 
-bnds = Bounds([0, 0, 0], [np.inf, 0.25, 0.2])
-
-bounds = [
-    (0.5, 10.0),     # M
-    (0.0, 0.25),   # nu
-    (0.0, 0.15)    # x0
-]
+bounds = [(1.15, 1.25), (0.249, 0.25), (0.07382936, 0.07582936)]
 
 result = differential_evolution(f_min, bounds, maxiter=100, popsize=15, polish=False)
 print(result.x, result.fun)
-f_min(result.x, experiment, True)
+
+#now to plot the trajectories, i need the solution to the diff eq with the minimized params
+guessed_M, guessed_nu, guessed_x0 = result.x
+guessed_xvals, guessed_PSI_x = f_min(result.x, experiment, True, True)
+get_trajectories(guessed_M, guessed_nu, guessed_x0, guessed_xvals, guessed_PSI_x)
+
+#how long the code takes
+print("--- %s seconds ---" % (time.time() - start_time))
+
+#bnds = Bounds([0, 0, 0], [np.inf, 0.25, 0.2])
 
 #manually find the most suitable x0
 # x_values = np.linspace(0.067, 0.082, 1000)
@@ -196,7 +207,7 @@ f_min(result.x, experiment, True)
 # best_x0 = x_values[np.argmin(errors)]
 # print(best_x0)
 
-# initial = np.array([M, nu, best_x0])
+# initial = np.array([6.36, 0.205, 0.07907771])
 
 # initial_simplex = np.array([
 #     initial,
