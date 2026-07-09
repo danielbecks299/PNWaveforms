@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from solve_x_t import PNexapansion_x
-from solve_x_t import m1, m2, r
+from solve_x_t import m1, m2
 from solve_x_t import times, x_vals, eval_function, x0, E
 
 #actually finding e^-im*psi
@@ -13,44 +13,44 @@ def imganinary_exponent(psi_x, m):
 
     return y_big
 
-delta = np.sqrt(E.nu*(1-(4*E.nu)))
+delta = np.sqrt((1-(4*E.nu)))
 
 #solving for l=m=2 mode
-H_2_2 = PNexapansion_x(m1, m2, r)
+H_2_2 = PNexapansion_x(m1, m2)
 H_0 = 1
 H_1 = (-107/42) + ((55*E.nu)/42)
 H_2 = 2*np.pi
 H_3 = (-2173/1512) - ((1069*E.nu)/216) + ((2047*(E.nu**2))/1512)
 
 #solving for l=2, m=1
-H_2_1 = PNexapansion_x(m1, m2, r)
+H_2_1 = PNexapansion_x(m1, m2)
 H_1_0 = 1
 H_1_1 = (-17/28) + ((5*E.nu)/7)
 H_1_2 = (-1j/2) + np.pi - (2j*np.log10(2))
 H_1_3 = (-43/126) - ((509*E.nu)/126) + ((79 * (E.nu**2))/168)
 
 #solving for l=2, m=0
-H_2_0 = PNexapansion_x(m1, m2, r)
+H_2_0 = PNexapansion_x(m1, m2)
 H_0_0 = 1
 H_0_1 = -(4075/4032) - ((67*E.nu)/48)
 H_0_2 = -(151877213/67060224) - ((123815*E.nu)/44352) + ((205*E.nu**2)/352)
 
 #solving for l=3, m=1
-H_3_1 = PNexapansion_x(m1, m2, r)
+H_3_1 = PNexapansion_x(m1, m2)
 H_3_1_0 = 1
 H_3_1_1 = (-8/3) - ((2*E.nu)/3)
 H_3_1_2 = (-7j/5) + np.pi - (2j * np.log10(2))
 H_3_1_3 = (607/198) - (136 * E.nu/99) - (247 * E.nu**2/198)
 
 #solving for l=3, m=2
-H_3_2 = PNexapansion_x(m1, m2, r)
+H_3_2 = PNexapansion_x(m1, m2)
 H_3_2_0 = 1 - (3*E.nu)
 H_3_2_1 = (-193/90) + (145*E.nu/18) - (73*E.nu**2/18)
 H_3_2_2 = -3j + (2*np.pi) + ((66j/5) - (6*np.pi))*E.nu
 H_3_2_3 = (-1451/3960) - (17387*E.nu/3969) + (5557*E.nu**2/220) - (5341*E.nu**3/1320)
 
 #solving for l=3, m=3
-H_3_3 = PNexapansion_x(m1, m2, r)
+H_3_3 = PNexapansion_x(m1, m2)
 H_3_3_0 = 1
 H_3_3_1 = -4 + (2*E.nu)
 H_3_3_2 = -(21j/5) + (3*np.pi) - (6j*np.log10(2)) + (6j*np.log10(3))
@@ -112,7 +112,7 @@ H_3_3_X = H_3_3.get_Eq()
 H_3_3_x = eval_function(H_3_3_X, x_vals)
 
 #e^im*psi, assume psi_0 = 0
-PSI = PNexapansion_x(m1, m2, r)
+PSI = PNexapansion_x(m1, m2)
 a = -2.5 #factor of x^-(5/2)
 PSI_0 = 1
 PSI_1 = ((-55/384)-(3715/32256))*(-32)*PSI.nu
@@ -129,13 +129,10 @@ PSI_x = eval_function(PSI_X, x_vals)
 phi = 0
 theta = np.pi/2
 
+e_PSI_x_3 = np.real(imganinary_exponent(PSI_x, 3))
 e_PSI_x_2 = np.real(imganinary_exponent(PSI_x, 2))
 e_PSI_x_1 = np.real(imganinary_exponent(PSI_x, 1))
 e_PSI_x_0 = np.real(imganinary_exponent(PSI_x, 0))
-
-e_PSI_x_31 = np.real(imganinary_exponent(PSI_x, 1))
-e_PSI_x_32 = np.real(imganinary_exponent(PSI_x, 2))
-e_PSI_x_33 = np.real(imganinary_exponent(PSI_x, 3))
 
 h_strain_20 = 0
 h_strain_20 = np.longdouble(h_strain_20)
@@ -151,18 +148,15 @@ h_strain_22 = e_PSI_x_2 * H_2_2_x
 
 h_strain_31 = 0
 h_strain_31 = np.longdouble(h_strain_31)
-h_strain_31 = e_PSI_x_31 * H_3_1_x
+h_strain_31 = e_PSI_x_1 * H_3_1_x
 
 h_strain_32 = 0
 h_strain_32 = np.longdouble(h_strain_31)
-h_strain_32 = e_PSI_x_32 * H_3_2_x
+h_strain_32 = e_PSI_x_2 * H_3_2_x
 
 h_strain_33 = 0
 h_strain_33 = np.longdouble(h_strain_33)
-h_strain_33 = e_PSI_x_33 * H_3_3_x
-
-total_h_t = np.asarray((H_2_0_X, H_2_1_X, H_2_2_X, H_3_1_X, H_3_2_X, H_3_3_X))
-total_psi_t = np.asarray((e_PSI_x_0, e_PSI_x_1, e_PSI_x_2, e_PSI_x_31, e_PSI_x_32, e_PSI_x_33))
+h_strain_33 = e_PSI_x_3 * H_3_3_x
 
 strain_fin = h_strain_20 + h_strain_21 + h_strain_22 + h_strain_31 + h_strain_32 + h_strain_33
 
@@ -170,5 +164,29 @@ plt.xlabel(r"$Time, t$")
 plt.ylabel(r"$h$, strain")
 plt.legend(title=f"$m_1 ={PSI.m1}, m_2 = {PSI.m2}, c = 1, G = 1, x_0 = {x0[0]}$, 2nd Order")
 
-plt.plot(times, strain_fin)
-plt.show()
+# import sxs
+# import numpy as np
+# import matplotlib.pyplot as plt
+
+# from solve_x_t import E
+
+# sim = sxs.load("SXS:BBH:1132")
+# h = sim.h
+
+# metadata = sim.metadata
+# horizons = sim.horizons
+
+# idx1 = np.argmin(abs(horizons.A.time - metadata.reference_time))
+# # plt.plot(h.t, h.data[:,h.index(2,2)])
+
+# split_idx = int(len(h.t) * 1)
+# trial = np.vstack((h.t[:split_idx], np.real(h.data[:,h.index(2,2)][:split_idx])))
+# # trial.reshape(2, -1)
+# print(np.shape(trial))
+# plt.plot(trial[0], trial[1])
+
+# plt.plot(times, h_strain_22)
+# plt.show()
+
+experiment = np.asarray((times, (h_strain_20+h_strain_21+h_strain_22+h_strain_33)))
+print(np.shape(experiment))

@@ -6,9 +6,10 @@ from scipy.interpolate import CubicSpline, PchipInterpolator
 from scipy.optimize import minimize, differential_evolution, Bounds
 from scipy.signal import find_peaks, correlate
 
-from solve_x_t import PNexapansion_x, E, F, eval_function, pole_event, limit, t_span, step, x_t
-from find_h_t import PSI, imganinary_exponent, experiment, PSI_x
+from solve_x_t import PNexapansion_x, E, F, eval_function, pole_event, limit, t_span, step
+from find_h_t import PSI, imganinary_exponent, experiment
 from find_r_t import get_trajectories
+#from ivp import trial
 
 start_time = time.time()
 
@@ -141,6 +142,7 @@ def f_min(parameters, target_strain=experiment, plot=False, return_data=False):
 
     #sum them
     dummy_h_strain = dummy_h_strain_20 + dummy_h_strain_21 + dummy_h_strain_22 + dummy_h_strain_33
+    #dummy_h_strain = dummy_h_strain_22
 
     # Choose a common grid
     t_common = target_strain[0]
@@ -165,7 +167,8 @@ def f_min(parameters, target_strain=experiment, plot=False, return_data=False):
 
     solution_aligned = np.interp(t_common, t_shifted, solution_dummy_interpolated, left=0, right=0)
     target_norm = np.abs(original_strain_interpolated)
-    difference_vector = original_strain_interpolated - solution_aligned
+    #difference_vector = original_strain_interpolated - solution_aligned
+    difference_vector = np.abs(original_strain_interpolated) - np.abs(solution_aligned)
 
     if plot:
         plt.plot(t_common, original_strain_interpolated, label='target')
@@ -178,7 +181,7 @@ def f_min(parameters, target_strain=experiment, plot=False, return_data=False):
     
     return np.linalg.norm(difference_vector) / np.linalg.norm(target_norm)
 
-bounds = [(1.15, 1.25), (0.249, 0.25), (0.07382936, 0.07582936)]
+bounds = [(0, 2), (0, 0.25), (0., 0.1)]
 
 result = differential_evolution(f_min, bounds, maxiter=100, popsize=15, polish=False)
 print(result.x, result.fun)
