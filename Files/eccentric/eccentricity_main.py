@@ -4,6 +4,7 @@ from jax import grad, vmap, jit
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
+from scipy.integrate import cumulative_trapezoid
 import sympy as sp
 import time
 
@@ -48,10 +49,10 @@ def dJ_dt_xi(x, i):
     dJ1_5 = 0
     dJ2 = 0
 
-    dJ_dt = -alpha * (dJ0 + dJ1*x)
+    dJ_dt = alpha * (dJ0 + dJ1*x)
     return dJ_dt
 
-def ode(t, y):
+def ode_xi(t, y):
     x, i = y
 
     dEdx = dE_dx(x, i)
@@ -70,6 +71,10 @@ def ode(t, y):
 
     return [float(dxdt), float(didt)]
 
+def find_omega(x):
+    omega = (c**3 * x**(3/2))/(G * M)
+    return omega
+
 def i_event(t, y):
     x, i = y
     return i - 1
@@ -85,30 +90,41 @@ dJ_dx = jit(grad(J_xi, argnums=0))
 dJ_di = jit(grad(J_xi, argnums=1))
 
 start = 0
-limit = 500_00
+limit = 500_000
 step = 10_000_000
 t_span = (start, limit)  
 
-x0, i0 = 0.0417079949301, 0.13
+x0, i0 = 0.04, 0.8
 y0 = [x0, i0]
 
 start_time = time.time()
 
-sol = solve_ivp(ode, t_span, y0, method='RK45', events=i_event, t_eval=np.linspace(start, limit, step))
-t = sol.t
-x = sol.y[0]
-i = sol.y[1]
+sol_xi = solve_ivp(ode_xi, t_span, y0, method='RK45', events=i_event, rtol=1e-10, atol=1e-12, t_eval=np.linspace(start, limit, step))
+t = sol_xi.t
+x = sol_xi.y[0]
+i = sol_xi.y[1]
+
+omega = find_omega(x)
+dl_dt = (3*x)/(omega*i) + 1
+l = cumulative_trapezoid(dl_dt, t, initial=0.0)
 
 plt.plot(t, i, label='iota')
 plt.plot(t, x, label='x')
-#plt.plot(t_plot, y_plot[1], label="iota")
-plt.legend()
+plt.xlabel(r"$Time, t$")
+
+plt.legend(title=f"$m_1 ={m1}, m_2 = {m2}, x_0 = {x[0]}, i_0 = {i[0]}$, 1st Order")
 plt.show()
 
-print(sol.nfev)
-print(sol.njev)
-print(sol.status)
-print(sol.message)
+plt.plot(t, l)
+plt.xlabel(r"$Time, t$")
+plt.ylabel(r"$Mean Anomaly, \ell$")
+plt.legend(title=f"$m_1 ={m1}, m_2 = {m2}, x_0 = {x[0]}, i_0 = {i[0]}$, 1st Order")
+plt.show()
+
+# print(sol_xi.nfev)
+# print(sol_xi.njev)
+# print(sol_xi.status)
+# print(sol_xi.message)
 
 print(time.time() - start_time)
 
