@@ -48,7 +48,7 @@ def dJ_dt_xi(x, i):
     dJ1_5 = 0
     dJ2 = 0
 
-    dJ_dt = alpha * (dJ0 + dJ1*x)
+    dJ_dt = -alpha * (dJ0 + dJ1*x)
     return dJ_dt
 
 def ode(t, y):
@@ -86,10 +86,10 @@ dJ_di = jit(grad(J_xi, argnums=1))
 
 start = 0
 limit = 500_00
-step = 10_000_0
+step = 10_000_000
 t_span = (start, limit)  
 
-x0, i0 = 0.0417079949301, 0.15
+x0, i0 = 0.0417079949301, 0.13
 y0 = [x0, i0]
 
 start_time = time.time()
