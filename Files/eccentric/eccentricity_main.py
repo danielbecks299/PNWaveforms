@@ -25,8 +25,6 @@ def F_xi(x, i):
     alpha = (32 * ((c*x)**5) * nu**2)/(5*G * i**(3/2))
     F0 = (37/96) + (425/(96 * i**2)) - (61/(16*i))
     F1 = (139/112) + ((-5297/336) - (2725/384)*nu)/i + ((259*nu)/1152) + ((-289/3) + ((3605*nu)/384))/i**3 + ((1865/24) + ((3775/384)*nu))/i**2
-    F1_5 = 0
-    F2 = 0
 
     F = alpha * (F0 + F1*x)
     return F
@@ -34,8 +32,7 @@ def F_xi(x, i):
 def J_xi(x, i):
     alpha = ((G * M**2 * nu)/(c * jnp.sqrt(x)))
     J0 = jnp.sqrt(i)
-    J1 = (((38/5) - (5*nu/4))/jnp.sqrt(i)) + (jnp.sqrt(i) * ((nu/4) - (5/8)))
-    J2 = 0 #fill this in later
+    J1 = (((35/8) - (5*nu/4))/jnp.sqrt(i)) + (jnp.sqrt(i) * ((nu/4) - (5/8)))
 
     J = alpha * (J0 + J1*x)
     return J
@@ -44,12 +41,39 @@ def dJ_dt_xi(x, i):
     alpha = (32 * (c*nu)**2 * M * x**(7/2))/(5*i)
     dJ0 = -(7/8) + (15/(8*i))
     dJ1 = -(1597/2688) + ((-3125/128) - (275*nu/96))/(i**2) - (31*nu/32) + ((535/64) + (61*nu/8))/i
-    dJ1_5 = 0
-    dJ2 = 0
 
     dJ_dt = alpha * (dJ0 + dJ1*x)
     return dJ_dt
 
+def a_t(x, i):
+    alpha = 1/x
+    a_t0 = 1
+    a_t1 = (2/i) + (nu/3) - 3
+
+    a_txi = alpha * (a_t0 + a_t1*x)
+    return a_txi
+
+def e_t(x, i):
+    e_t0 = 1 - i 
+    e_t1 = (-35/8) + (9*nu)/2 + i*((17/4) - ((13*nu)/6))
+
+    e_txi = e_t0 + (e_t1*x)
+    return e_txi
+
+def e_r(x, i):
+    e_r0 = 1 - i
+    e_r1 = (3*nu)/2 - (3/4) + i*((5*nu)/ - (15/4))
+
+    e_rxi = e_r0 + (e_r1*x)
+    return e_rxi
+
+def e_phi_22(x, i):
+    e_phi0 = 1 - i
+    e_phi1 = (-3/4) + (5*nu)/2 + i*((nu/6) - (15/8))
+
+    e_phi_22xi = e_phi0 + (e_phi1*x)
+    return e_phi_22xi
+            
 def ode_xi(t, y):
     x, i = y
 
@@ -69,11 +93,9 @@ def ode_xi(t, y):
 
     return [float(dxdt), float(didt)]
 
-def invert_kepler(l, i):
-    e = np.sqrt(1 - i)
-
-    f = lambda u: u - e*np.sin(u) - l
-    fp = lambda u: 1 - e*np.cos(u)
+def invert_kepler(l, e_txi):
+    f = lambda u: u - e_txi*np.sin(u) - l
+    fp = lambda u: 1 - e_txi*np.cos(u)
 
     u = newton(f, x0=l, fprime=fp)
 
@@ -85,7 +107,7 @@ def find_omega(x):
 
 def i_event(t, y):
     x, i = y
-    return i - 1
+    return i - 1.1
 
 i_event.terminal = True      # stop integration
 i_event.direction = 1         # only trigger when i increases through 1
@@ -99,7 +121,7 @@ def denom_event(t, y):
     return D
 
 denom_event.terminal = True
-denom_event.direction = -1
+denom_event.direction = 0
 
 #partial differentiaition with jax library
 dE_dx = jit(grad(E_xi, argnums=0))
@@ -109,33 +131,39 @@ dJ_dx = jit(grad(J_xi, argnums=0))
 dJ_di = jit(grad(J_xi, argnums=1))
 
 start = 0
-limit = 500_000
-step = 750_000_000
+limit = 100_000
+step = 200_000_000
 t_span = (start, limit)  
 
-x0, i0 = 0.04, 0.7
+x0, i0 = 0.05, 0.8 #0.0530009151042, 0.8
 y0 = [x0, i0]
 
 start_time = time.time()
 
-sol_xi = solve_ivp(ode_xi, t_span, y0, method='RK45', events=[i_event, denom_event], rtol=1e-8, atol=1e-10, t_eval=np.linspace(start, limit, step))
+sol_xi = solve_ivp(ode_xi, t_span, y0, method='RK45', events=[denom_event], rtol=1e-8, atol=1e-10, t_eval=np.linspace(start, limit, step))
 t = sol_xi.t
 x = sol_xi.y[0]
 i = sol_xi.y[1]
 
 omega = find_omega(x)
-dl_dt = (3*x)/(omega*i) + 1
+dl_dt = (omega*i)/((3*x + i))
 l = cumulative_trapezoid(dl_dt, t, initial=0.0)
 
-u = invert_kepler(l, i)
+#v_t, phi_t
 
-r = (1 - np.sqrt(1 - i) * np.cos(u)) / x
+e_txi = e_t(x, i)
+u = invert_kepler(l, e_txi)
 
-x_coords = (1/x) * np.cos(u) - np.sqrt(1-i)
-y_coords = (1/x) * i * np.sin(u)
+r = a_t(x,i) * (1 - e_r(x, i) * np.cos(u))
 
-x_coords2 = -(1/x) * np.cos(u) - np.sqrt(1-i)
-y_coords2 = -(1/x) * i * np.sin(u)
+v_xi = 2 * np.atan2(np.sqrt((1 + e_phi_22(x,i) * np.sin(u/2))), (np.sqrt(1 - e_phi_22(x, i) * np.cos(u/2))))
+phi_xi = (1 + (3*x)/i) * v_xi
+
+x_coords = r/2 * np.cos(phi_xi)
+y_coords = r/2 * np.sin(phi_xi)
+
+x_coords2 = -x_coords
+y_coords2 = -y_coords
 plt.rcParams['agg.path.chunksize'] = 20000
 
 plt.plot(t, i, label='iota')
@@ -167,8 +195,6 @@ print(sol_xi.nfev)
 print(sol_xi.njev)
 print(sol_xi.status)
 print(sol_xi.message)
-
-print(i[-1])
 
 print(time.time() - start_time)
 
