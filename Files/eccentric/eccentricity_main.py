@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp, cumulative_trapezoid
 from scipy.optimize import newton
 import time
+from scipy.signal import hilbert
 
 start_time = time.time()
 
@@ -54,26 +55,26 @@ def a_t(x, i):
 
 def e_t(x, i):
     e_t0 = 1 - i 
-    e_t1 = (-35/8) + (9*nu)/2 + i*((17/4) - ((13*nu)/6))
+    e_t1 = -35/4 + 9*nu/2 + i*(17/4 - 13*nu/6)
 
     e_txi = e_t0 + (e_t1*x)
     return e_txi
 
 def e_r(x, i):
     e_r0 = 1 - i
-    e_r1 = (3*nu)/2 - (3/4) + i*((5*nu)/6 - (15/4))
+    e_r1 = -3/4 + 3*nu/2 + i*(-15/4 + 5*nu/6)
 
     e_rxi = e_r0 + (e_r1*x)
     return e_rxi
 
 def e_phi_22(x, i):
     e_phi0 = 1 - i
-    e_phi1 = (-3/4) + (5*nu)/2 + i*((-nu/6) - (15/8))
+    e_phi1 = -3/4 + 5*nu/2 + i*(-15/4 - nu/6)
 
     e_phi_22xi = e_phi0 + (e_phi1*x)
     return e_phi_22xi
 
-def H22(r, phi, x, i, t):
+def H22(r, phi, t):
     alpha = (4*G*M*nu / c**4) * np.sqrt(np.pi/5) * np.exp(-1j * 2 * phi)
     dr = np.gradient(r, t)
     dphi = np.gradient(phi, t)
@@ -89,7 +90,7 @@ def H22(r, phi, x, i, t):
         + (dr * (G*M*dphi * (25j/21 + 45j*nu/7) + (r * dphi)**3 * (9j/7 - 27j*nu/7)))
     )
 
-    return alpha * (H22_0 + H22_1*x)
+    return alpha * np.real((H22_0 + H22_1))
             
 def ode_xi(t, y):
     x, i = y
@@ -105,9 +106,8 @@ def ode_xi(t, y):
 
     denom = dEdx*dJdi - dJdx*dEdi
 
-    #only flipped the sign on F
-    dxdt = (-F*dJdi - dEdi*dJdt) / denom
-    didt = (dEdx*dJdt + F*dJdx) / denom
+    dxdt = (-F*dJdi + dEdi*dJdt) / denom
+    didt = (-dEdx*dJdt + F*dJdx) / denom
 
     return [float(dxdt), float(didt)]
 
@@ -149,11 +149,11 @@ dJ_dx = jit(grad(J_xi, argnums=0))
 dJ_di = jit(grad(J_xi, argnums=1))
 
 start = 0
-limit = 500_000
-step = 10_000_000
+limit = 200_000
+step = 2_000_000
 t_span = (start, limit)  
 
-x0, i0 = 0.018, 0.7 #0.036, 0.7
+x0, i0 = 0.02, 0.8 #0.036, 0.7
 y0 = [x0, i0]
 
 start_time = time.time()
@@ -179,12 +179,16 @@ r = a_t(x,i) * (1 - (e_rxi * np.cos(u)))
 
 #find the eccentric phi and regular phi
 ephi = np.sqrt(e_phi_22(x, i))
-raw_v = np.arctan2(np.sqrt(1 + ephi) * np.sin(u/2), np.sqrt(1 - ephi) * np.cos(u/2))
-v_xi = 2 * np.unwrap(raw_v)
-phi_xi = (1 + (3*x)/i) * v_xi
+# raw_v = np.arctan2(np.sqrt(1 + ephi) * np.sin(u/2), np.sqrt(1 - ephi) * np.cos(u/2))
+# v_xi = 2 * np.unwrap(raw_v)
+# phi_xi = (1 + (3*x)/i) * v_xi
+
+K = 1.0 + (3.0 * x / i)
+phi_dot = (K * dl_dt * np.sqrt(1.0 - ephi**2) / ((1.0 - e_txi * np.cos(u)) * (1.0 - ephi * np.cos(u))))
+phi_xi = cumulative_trapezoid(phi_dot, t, initial=0.0)
 
 #plotting the 2,2 mode
-wave = H22(r, phi_xi, x, i, t)
+wave = H22(r, phi_xi, t)
 
 #cartesian coords
 r1 = r * (m2 / M)
@@ -194,6 +198,12 @@ y_coords = r1 * np.sin(phi_xi)
 r2 = r * (m1 / M)
 x_coords2 = -r2 * np.cos(phi_xi)
 y_coords2 = -r2 * np.sin(phi_xi)
+
+# amplitude = np.abs(wave)
+# phase = np.unwrap(np.angle(wave))
+
+# plt.plot(t, amplitude)
+# plt.show()
 
 plt.plot(t, i, label='iota')
 plt.plot(t, x, label='x')
@@ -213,7 +223,7 @@ plt.ylabel(r"$r$")
 plt.legend(title=f"$m_1 ={m1}, m_2 = {m2}, x_0 = {x[0]}, i_0 = {i[0]}$, 1st Order")
 plt.show()
 
-plt.plot(t, np.real(wave))
+plt.plot(t, wave)
 plt.xlabel(r"$Time, t$")
 plt.ylabel(r"$h$")
 plt.legend(title=f"$m_1 ={m1}, m_2 = {m2}, x_0 = {x[0]}, i_0 = {i[0]}$, 1st Order")
