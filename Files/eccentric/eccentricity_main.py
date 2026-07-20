@@ -1,4 +1,4 @@
-import jax.numpy as jnp
+import sympy as sp
 import numpy as np
 from jax import grad, vmap, jit
 import matplotlib.pyplot as plt
@@ -13,12 +13,31 @@ G, c, m1, m2 = 1, 1, 0.5, 0.5
 M = m1 + m2
 nu = (m1*m2)/M**2 
 
+#setting sympy
+xs, isym = sp.symbols("x i", positive=True)
+Gs, cs, Ms, nus = sp.symbols("G c M nu", positive=True)
+
+E_sym = (-sp.Rational(1,2)*c**2*M*nus*xs * (1 + (sp.Rational(5,4) - 2/isym - nus/12)*xs))
+J_sym = ((G*M**2*nus)/(c*sp.sqrt(xs)) * (sp.sqrt(isym) + ((sp.Rational(35,8) - 5*nus/4)/sp.sqrt(isym) + sp.sqrt(isym)*(nus/4 - sp.Rational(5,8)))*xs))
+
+subs = {
+    Gs: G,
+    cs: c,
+    Ms: M,
+    nus: nu,
+}
+
+E_sym = E_sym.subs(subs)
+J_sym = J_sym.subs(subs)
+
+#define numerical functions
 def E_xi(x, i):
-    alpha = (-0.5 * (c**2) * M * nu * x)
+    alpha = -(1/2) * c**2 * M * nu * x
     E0 = 1
-    E1 = (5/4) - (2/i) - (nu/12)
+    E1 = (5/4) - 2/i - nu/12
 
     E = alpha * (E0 + E1*x)
+    
     return E
 
 def F_xi(x, i):
@@ -30,9 +49,9 @@ def F_xi(x, i):
     return F
 
 def J_xi(x, i):
-    alpha = ((G * M**2 * nu)/(c * jnp.sqrt(x)))
-    J0 = jnp.sqrt(i)
-    J1 = (((35/8) - (5*nu/4))/jnp.sqrt(i)) + (jnp.sqrt(i) * ((nu/4) - (5/8)))
+    alpha = (G*M**2*nu)/(c*np.sqrt(x))
+    J0 = np.sqrt(i)
+    J1 = ((35/8) - 5*nu/4)/np.sqrt(i) + np.sqrt(i)*(nu/4 - (5/8))
 
     J = alpha * (J0 + J1*x)
     return J
@@ -45,6 +64,7 @@ def dJ_dt_xi(x, i):
     dJ_dt = alpha * (dJ0 + dJ1*x)
     return dJ_dt
 
+#trajectory
 def a_t(x, i):
     alpha = 1/x
     a_t0 = 1
@@ -67,6 +87,7 @@ def e_r(x, i):
     e_rxi = e_r0 + (e_r1*x)
     return e_rxi
 
+#waveform
 def e_phi_22(x, i):
     e_phi0 = 1 - i
     e_phi1 = -3/4 + 5*nu/2 + i*(-15/4 - nu/6)
@@ -95,11 +116,11 @@ def H22(r, phi, t):
 def ode_xi(t, y):
     x, i = y
 
-    dEdx = dE_dx(x, i)
-    dEdi = dE_di(x, i)
+    dEdx = dE_dx_func(x, i)
+    dEdi = dE_di_func(x, i)
 
-    dJdx = dJ_dx(x, i)
-    dJdi = dJ_di(x, i)
+    dJdx = dJ_dx_func(x, i)
+    dJdi = dJ_di_func(x, i)
 
     F = F_xi(x, i)
     dJdt = dJ_dt_xi(x, i)
@@ -132,34 +153,44 @@ i_event.direction = 1         # only trigger when i increases through 1
 
 def denom_event(t, y):
     x, i = y
+
     D = (
-        dE_dx(x, i)*dJ_di(x, i)
-        - dJ_dx(x, i)*dE_di(x, i)
-    )
+    dE_dx_func(x, i)
+    * dJ_di_func(x, i)
+    - dJ_dx_func(x, i)
+    * dE_di_func(x, i)
+)
     return D
 
 denom_event.terminal = True
 denom_event.direction = 0
 
-#partial differentiaition with jax library
-dE_dx = jit(grad(E_xi, argnums=0))
-dE_di = jit(grad(E_xi, argnums=1))
+#partial differentiaition with sympy
+dE_dx = sp.diff(E_sym, xs)
+dE_di = sp.diff(E_sym, isym)
 
-dJ_dx = jit(grad(J_xi, argnums=0))
-dJ_di = jit(grad(J_xi, argnums=1))
+dJ_dx = sp.diff(J_sym, xs)
+dJ_di = sp.diff(J_sym, isym)
 
+dE_dx_func = sp.lambdify((xs, isym), dE_dx, "numpy")
+dE_di_func = sp.lambdify((xs, isym), dE_di, "numpy")
+
+dJ_dx_func = sp.lambdify((xs, isym), dJ_dx, "numpy")
+dJ_di_func = sp.lambdify((xs, isym), dJ_di, "numpy")
+
+#setup for calculations
 start = 0
-limit = 200_000
-step = 2_000_000
+limit = 100_000
+step = 1_000_000
 t_span = (start, limit)  
 
-x0, i0 = 0.02, 0.8 #0.036, 0.7
+x0, i0 = 0.017, 0.8
 y0 = [x0, i0]
 
 start_time = time.time()
 
 #solve ODE
-sol_xi = solve_ivp(ode_xi, t_span, y0, method='RK45', events=[denom_event, i_event], rtol=1e-8, atol=1e-10, t_eval=np.linspace(start, limit, step))
+sol_xi = solve_ivp(ode_xi, t_span, y0, method='BDF', events=[denom_event, i_event], rtol=1e-8, atol=1e-10, t_eval=np.linspace(start, limit, step))
 t = sol_xi.t
 x = sol_xi.y[0]
 i = sol_xi.y[1]
@@ -179,9 +210,6 @@ r = a_t(x,i) * (1 - (e_rxi * np.cos(u)))
 
 #find the eccentric phi and regular phi
 ephi = np.sqrt(e_phi_22(x, i))
-# raw_v = np.arctan2(np.sqrt(1 + ephi) * np.sin(u/2), np.sqrt(1 - ephi) * np.cos(u/2))
-# v_xi = 2 * np.unwrap(raw_v)
-# phi_xi = (1 + (3*x)/i) * v_xi
 
 K = 1.0 + (3.0 * x / i)
 phi_dot = (K * dl_dt * np.sqrt(1.0 - ephi**2) / ((1.0 - e_txi * np.cos(u)) * (1.0 - ephi * np.cos(u))))
@@ -198,12 +226,6 @@ y_coords = r1 * np.sin(phi_xi)
 r2 = r * (m1 / M)
 x_coords2 = -r2 * np.cos(phi_xi)
 y_coords2 = -r2 * np.sin(phi_xi)
-
-# amplitude = np.abs(wave)
-# phase = np.unwrap(np.angle(wave))
-
-# plt.plot(t, amplitude)
-# plt.show()
 
 plt.plot(t, i, label='iota')
 plt.plot(t, x, label='x')
@@ -229,8 +251,10 @@ plt.ylabel(r"$h$")
 plt.legend(title=f"$m_1 ={m1}, m_2 = {m2}, x_0 = {x[0]}, i_0 = {i[0]}$, 1st Order")
 plt.show()
 
-plt.plot(x_coords, y_coords, label='Mass 1')
-plt.plot(x_coords2, y_coords2, label="Mass 2")
+trial = np.array([t, np.real(wave)])
+
+plt.plot(x_coords, y_coords, label='Mass 1', linestyle='--', alpha=0.95)
+plt.plot(x_coords2, y_coords2, label="Mass 2", linestyle='--', alpha=0.8)
 plt.xlabel(r"$x$")
 plt.ylabel(r"$y$")
 plt.legend(title=f"$m_1 ={m1}, m_2 = {m2}, x_0 = {x[0]}, i_0 = {i[0]}$, 1st Order")
