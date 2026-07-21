@@ -5,7 +5,6 @@ import numpy as np
 import time
 
 from eccentricity_main import trial, start, limit, step, t_span
-from eccentricity_main import E_xi, F_xi, J_xi, dJ_dt_xi, dE_di_func, dE_dx_func, dJ_di_func, dJ_dx_func
 from eccentricity_main import e_t, e_r, e_phi_22, a_t, H22
 from eccentricity_main import ode_xi, find_omega, invert_kepler, denom_event, i_event
 
