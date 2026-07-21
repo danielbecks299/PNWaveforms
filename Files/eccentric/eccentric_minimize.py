@@ -1,11 +1,15 @@
 from scipy.integrate import solve_ivp, cumulative_trapezoid
 from scipy.optimize import differential_evolution
+from scipy.signal import correlate
 import numpy as np
+import time
 
 from eccentricity_main import trial, start, limit, step, t_span
 from eccentricity_main import E_xi, F_xi, J_xi, dJ_dt_xi, dE_di_func, dE_dx_func, dJ_di_func, dJ_dx_func
 from eccentricity_main import e_t, e_r, e_phi_22, a_t, H22
 from eccentricity_main import ode_xi, find_omega, invert_kepler, denom_event, i_event
+
+start_time = time.time()
 
 def f_min(parameters, target_strain=trial, plot=False, return_data=False):
     G, c, m1, m2 = 1, 1, 0.5, 0.5
@@ -50,14 +54,33 @@ def f_min(parameters, target_strain=trial, plot=False, return_data=False):
     wave_test = np.real(H22(r, phi_xi, t))
 
     #interpolation
-    t_common = trial[0]
+    t_common = target_strain[0]
     original_strain_interpolated = np.interp(t_common, target_strain[0], target_strain[1])
     solution_dummy_interpolated = np.interp(t_common, t, wave_test)
-    
-    difference_vector = np.abs(original_strain_interpolated) - np.abs(solution_dummy_interpolated)
-    return np.linalg.norm(difference_vector)
+
+    target = original_strain_interpolated.copy()
+    trial = solution_dummy_interpolated.copy()
+
+    #normalization prioritizes finding the best timing as amplitude biases are disregarded and recalculated in the difference_vector
+    target /= np.linalg.norm(target)
+    trial /= np.linalg.norm(trial)
+
+    #find the best time shift
+    corr = correlate(target, trial, mode="full")
+    shift = np.argmax(corr) - (len(trial) - 1)
+
+    dt = shift * (t_common[1] - t_common[0]) #the subtraction is to find the timestep
+    t_shifted = t_common + dt
+
+    solution_aligned = np.interp(t_common, t_shifted, solution_dummy_interpolated, left=0, right=0)
+    target_norm = np.abs(original_strain_interpolated)
+    difference_vector = np.abs(original_strain_interpolated) - np.abs(solution_aligned)
+
+    return np.linalg.norm(difference_vector) / np.linalg.norm(target_norm)
 
 bounds = [(0.01, 0.019), (0.5, 0.9)]
 
 result = differential_evolution(f_min, bounds, maxiter=100, popsize=15, polish=False)
 print(result.x, result.fun)
+
+print("--- %s seconds ---" % (time.time() - start_time))
