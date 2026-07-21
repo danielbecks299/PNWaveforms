@@ -1,11 +1,9 @@
 import sympy as sp
 import numpy as np
-from jax import grad, vmap, jit
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp, cumulative_trapezoid
 from scipy.optimize import newton
 import time
-from scipy.signal import hilbert
 
 start_time = time.time()
 
@@ -184,7 +182,7 @@ limit = 100_000
 step = 1_000_000
 t_span = (start, limit)  
 
-x0, i0 = 0.017, 0.8
+x0, i0 = 0.012675, 0.6338
 y0 = [x0, i0]
 
 start_time = time.time()
