@@ -11,12 +11,12 @@ from eccentricity_main import ode_xi, find_omega, invert_kepler, denom_event, i_
 start_time = time.time()
 
 def f_min(parameters, target_strain=trial, plot=False, return_data=False):
-    G, c, m1, m2 = 1, 1, 0.5, 0.5
-    M = m1 + m2
-    nu = (m1*m2)/M**2 
-    y0 = parameters
+    G, c= 1, 1
+    M = parameters[0]
+    nu = parameters[1]
+    y0 = (parameters[2], parameters[3])
 
-    sol_xi = solve_ivp(ode_xi, t_span, y0, method='BDF', events=[denom_event, i_event], rtol=1e-8, atol=1e-10, t_eval=np.linspace(start, limit, step))
+    sol_xi = solve_ivp(ode_xi, t_span, y0, method='BDF', events=[denom_event, i_event], rtol=1e-8, atol=1e-10, t_eval=np.linspace(0, 50_000, 500_000))
     t = sol_xi.t
     x = sol_xi.y[0]
     i = sol_xi.y[1]
@@ -28,9 +28,9 @@ def f_min(parameters, target_strain=trial, plot=False, return_data=False):
     dl_dt = (omega*i)/((3*x + i))
     l = cumulative_trapezoid(dl_dt, t, initial=0.0)
 
-    et = e_t(x, i)
-    er = e_r(x, i)
-    ep = e_phi_22(x, i)
+    et = e_t(x, i, M, nu)
+    er = e_r(x, i, M, nu)
+    ep = e_phi_22(x, i, M, nu)
 
     if np.any(et < 0) or np.any(er < 0) or np.any(ep < 0):
         return 1e20
@@ -43,7 +43,7 @@ def f_min(parameters, target_strain=trial, plot=False, return_data=False):
     u = invert_kepler(l, e_txi)
 
     #find r(t)
-    r = a_t(x,i) * (1 - (e_rxi * np.cos(u)))
+    r = a_t(x,i, M, nu) * (1 - (e_rxi * np.cos(u)))
 
     K = 1.0 + (3.0 * x / i)
     phi_dot = (K * dl_dt * np.sqrt(1.0 - ephi**2) / ((1.0 - e_txi * np.cos(u)) * (1.0 - ephi * np.cos(u))))
@@ -77,7 +77,7 @@ def f_min(parameters, target_strain=trial, plot=False, return_data=False):
 
     return np.linalg.norm(difference_vector) / np.linalg.norm(target_norm)
 
-bounds = [(0.01, 0.019), (0.5, 0.9)]
+bounds = [(0, 5), (0.1, 0.25), (0.01, 0.019), (0.5, 0.9)]
 
 result = differential_evolution(f_min, bounds, maxiter=100, popsize=15, polish=False)
 print(result.x, result.fun)
