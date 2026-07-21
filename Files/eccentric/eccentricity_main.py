@@ -29,7 +29,7 @@ E_sym = E_sym.subs(subs)
 J_sym = J_sym.subs(subs)
 
 #define numerical functions
-def E_xi(x, i):
+def E_xi(x, i, M=M, nu=nu):
     alpha = -(1/2) * c**2 * M * nu * x
     E0 = 1
     E1 = (5/4) - 2/i - nu/12
@@ -38,7 +38,7 @@ def E_xi(x, i):
     
     return E
 
-def F_xi(x, i):
+def F_xi(x, i, M=M, nu=nu):
     alpha = (32 * ((c*x)**5) * nu**2)/(5*G * i**(3/2))
     F0 = (37/96) + (425/(96 * i**2)) - (61/(16*i))
     F1 = (139/112) + ((-5297/336) - (2725/384)*nu)/i + ((259*nu)/1152) + ((-289/3) + ((3605*nu)/384))/i**3 + ((1865/24) + ((3775/384)*nu))/i**2
@@ -46,7 +46,7 @@ def F_xi(x, i):
     F = alpha * (F0 + F1*x)
     return F
 
-def J_xi(x, i):
+def J_xi(x, i, M=M, nu=nu):
     alpha = (G*M**2*nu)/(c*np.sqrt(x))
     J0 = np.sqrt(i)
     J1 = ((35/8) - 5*nu/4)/np.sqrt(i) + np.sqrt(i)*(nu/4 - (5/8))
@@ -54,7 +54,7 @@ def J_xi(x, i):
     J = alpha * (J0 + J1*x)
     return J
 
-def dJ_dt_xi(x, i):
+def dJ_dt_xi(x, i, M=M, nu=nu):
     alpha = (32 * (c*nu)**2 * M * x**(7/2))/(5*i)
     dJ0 = -(7/8) + (15/(8*i))
     dJ1 = -(1597/2688) + ((-3125/128) - (275*nu/96))/(i**2) - (31*nu/32) + ((535/64) + (61*nu/8))/i
@@ -63,7 +63,7 @@ def dJ_dt_xi(x, i):
     return dJ_dt
 
 #trajectory
-def a_t(x, i):
+def a_t(x, i, M=M, nu=nu):
     alpha = 1/x
     a_t0 = 1
     a_t1 = (2/i) + (nu/3) - 3
@@ -71,14 +71,14 @@ def a_t(x, i):
     a_txi = alpha * (a_t0 + a_t1*x)
     return a_txi
 
-def e_t(x, i):
+def e_t(x, i, M=M, nu=nu):
     e_t0 = 1 - i 
     e_t1 = -35/4 + 9*nu/2 + i*(17/4 - 13*nu/6)
 
     e_txi = e_t0 + (e_t1*x)
     return e_txi
 
-def e_r(x, i):
+def e_r(x, i, M=M, nu=nu):
     e_r0 = 1 - i
     e_r1 = -3/4 + 3*nu/2 + i*(-15/4 + 5*nu/6)
 
@@ -86,14 +86,14 @@ def e_r(x, i):
     return e_rxi
 
 #waveform
-def e_phi_22(x, i):
+def e_phi_22(x, i, M=M, nu=nu):
     e_phi0 = 1 - i
     e_phi1 = -3/4 + 5*nu/2 + i*(-15/4 - nu/6)
 
     e_phi_22xi = e_phi0 + (e_phi1*x)
     return e_phi_22xi
 
-def H22(r, phi, t):
+def H22(r, phi, t, M=M, nu=nu):
     alpha = (4*G*M*nu / c**4) * np.sqrt(np.pi/5) * np.exp(-1j * 2 * phi)
     dr = np.gradient(r, t)
     dphi = np.gradient(phi, t)
