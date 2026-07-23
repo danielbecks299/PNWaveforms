@@ -2,14 +2,13 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
-from scipy.interpolate import CubicSpline, PchipInterpolator
-from scipy.optimize import minimize, differential_evolution, Bounds
-from scipy.signal import find_peaks, correlate
+from scipy.optimize import differential_evolution
+from scipy.signal import correlate
 
 from solve_x_t import PNexapansion_x, E, F, eval_function, pole_event, limit, t_span, step
 from find_h_t import PSI, imganinary_exponent, experiment
 from find_r_t import get_trajectories
-#from ivp import trial
+from ivp import trial
 
 start_time = time.time()
 
@@ -22,7 +21,9 @@ dummy_H21 = PNexapansion_x()
 dummy_H22 = PNexapansion_x()
 dummy_H33 = PNexapansion_x()
 
-def f_min(parameters, target_strain=experiment, plot=False, return_data=False):
+trial_ = experiment
+
+def f_min(parameters, target_strain=trial_, plot=False, return_data=False):
     #building the PNequations that will change with the minimization algorithm
     M = parameters[0]
     nu = parameters[1]
@@ -53,7 +54,7 @@ def f_min(parameters, target_strain=experiment, plot=False, return_data=False):
 
         return y
 
-    sol = solve_ivp(ode, t_span, x0, events=pole_event, method='RK45', t_eval=np.linspace(0, limit, step)) 
+    sol = solve_ivp(ode, t_span, x0, events=pole_event, method='RK45', t_eval=np.linspace(0, 10_000, 100_000)) 
 
     if (not sol.success) or sol.y.size == 0:
         return np.inf
@@ -181,14 +182,14 @@ def f_min(parameters, target_strain=experiment, plot=False, return_data=False):
     
     return np.linalg.norm(difference_vector) / np.linalg.norm(target_norm)
 
-bounds = [(0, 2), (0, 0.25), (0., 0.1)]
+bounds = [(0, 1.17), (0.165, 0.25), (0, 0.07)]
 
 result = differential_evolution(f_min, bounds, maxiter=100, popsize=15, polish=False)
 print(result.x, result.fun)
 
 #now to plot the trajectories, i need the solution to the diff eq with the minimized params
 guessed_M, guessed_nu, guessed_x0 = result.x
-guessed_xvals, guessed_PSI_x = f_min(result.x, experiment, True, True)
+guessed_xvals, guessed_PSI_x = f_min(result.x, trial_, True, True)
 get_trajectories(guessed_M, guessed_nu, guessed_x0, guessed_xvals, guessed_PSI_x)
 
 #how long the code takes

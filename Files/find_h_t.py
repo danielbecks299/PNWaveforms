@@ -162,7 +162,9 @@ strain_fin = h_strain_20 + h_strain_21 + h_strain_22 + h_strain_31 + h_strain_32
 
 plt.xlabel(r"$Time, t$")
 plt.ylabel(r"$h$, strain")
+plt.plot(times, h_strain_22, label='PN Corrections')
 plt.legend(title=f"$m_1 ={PSI.m1}, m_2 = {PSI.m2}, c = 1, G = 1, x_0 = {x0[0]}$, 2nd Order")
+plt.show()
 
 # import sxs
 # import numpy as np
@@ -179,14 +181,16 @@ plt.legend(title=f"$m_1 ={PSI.m1}, m_2 = {PSI.m2}, c = 1, G = 1, x_0 = {x0[0]}$,
 # idx1 = np.argmin(abs(horizons.A.time - metadata.reference_time))
 # # plt.plot(h.t, h.data[:,h.index(2,2)])
 
-# split_idx = int(len(h.t) * 1)
+# split_idx = int(len(h.t) * 0.5)
 # trial = np.vstack((h.t[:split_idx], np.real(h.data[:,h.index(2,2)][:split_idx])))
 # # trial.reshape(2, -1)
 # print(np.shape(trial))
-# plt.plot(trial[0], trial[1])
+# plt.plot(trial[0], trial[1], label='Numerical Relativity')
 
-# plt.plot(times, h_strain_22)
+# split_idx = int(len(times) * 0.95)
+
+# plt.plot(times[:split_idx], h_strain_22[:split_idx], label='PN Corrections')
+# plt.legend(title=f"$m_1 ={PSI.m1}, m_2 = {PSI.m2}, c = 1, G = 1, x_0 = {x0[0]}$, 2nd Order")
 # plt.show()
 
 experiment = np.asarray((times, (h_strain_20+h_strain_21+h_strain_22+h_strain_33)))
-print(np.shape(experiment))

@@ -67,6 +67,6 @@ def get_trajectories(M, nu, x0, x_vals, PSI_x):
 
     plt.show()
 
-    return 0
+    return x, y, x2, y2
 
-get_trajectories(E.M, E.nu, x0, x_vals, PSI_x)
+paths = get_trajectories(E.M, E.nu, x0, x_vals, PSI_x)

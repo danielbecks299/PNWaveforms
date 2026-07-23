@@ -74,7 +74,6 @@ def ode(t, x):
 
     return y
 
-
 #to deal with the root where dE/dx crosses 0
 def pole_event(t, x):
     return eval_function(dE_dx, x[0])
@@ -83,7 +82,7 @@ pole_event.terminal = True
 pole_event.direction = 0
 
 #from down on its setting parameters which gets super SUPER messy
-m1 = 1.5
+m1 = 0.5
 m2 = 0.5
 
 E = PNexapansion_x(m1, m2)    #create energy equation object
@@ -114,7 +113,7 @@ dE_dx = E.differentiate()
 F_x = F.get_Eq()
 
 #set conditions of ODE
-x0 = [0.0917079949301]#[0.07641572454]#
+x0 = [0.04]
 start = 0
 limit = 500_000
 step = 10_000_000
@@ -132,18 +131,6 @@ x_vals = x_t(x0, start, limit, step)[1]
 plt.xlabel(r"$Time, t$")
 plt.ylabel(r"$x=(M\Omega)^{2/3}$")
 plt.legend(title=f"$m_1 ={E.m1}, m_2 = {E.m2}, c = 1, G = 1, x_0 = {x0[0]}$, 2nd Order")
-
-# E.setM(0.95017497)
-# E.setNu(0.23754374)
-# F.setM(0.95017497)
-# F.setNu(0.23754374)
-
-# E_x = E.get_Eq()
-# dE_dx = E.differentiate()
-# F_x = F.get_Eq()
-
-# times2 = x_t(x0, start, limit, step)[0]
-# x_vals2 = x_t(x0, start, limit, step)[1]
 
 plt.plot(times, x_vals, label='x(t)')
 #plt.plot(times2, x_vals2-x_vals, label='x(t)')
