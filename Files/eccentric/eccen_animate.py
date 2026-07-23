@@ -101,7 +101,7 @@ ani = FuncAnimation(
 )
 
 plt.tight_layout()
-#plt.show()
+plt.show()
 
 
-ani.save("eccen_orbit_120.mp4", writer="ffmpeg", fps=240)
+#ani.save("eccen_orbit_120.mp4", writer="ffmpeg", fps=240, bitrate=1800)
