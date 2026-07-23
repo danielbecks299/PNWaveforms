@@ -138,7 +138,7 @@ def invert_kepler(l, e_txi):
 
     return u
 
-def find_omega(x):
+def find_omega(x, M=1):
     omega = (c**3 * x**(3/2))/(G * M)
     return omega
 
@@ -182,7 +182,7 @@ limit = 100_000
 step = 1_000_000
 t_span = (start, limit)  
 
-x0, i0 = 0.012675, 0.6338
+x0, i0 = 0.018, 0.7 #0.012675, 0.6338
 y0 = [x0, i0]
 
 start_time = time.time()

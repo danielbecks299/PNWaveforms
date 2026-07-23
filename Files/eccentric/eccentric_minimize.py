@@ -16,15 +16,15 @@ def f_min(parameters, target_strain=trial, plot=False, return_data=False):
     nu = parameters[1]
     y0 = (parameters[2], parameters[3])
 
-    sol_xi = solve_ivp(ode_xi, t_span, y0, method='BDF', events=[denom_event, i_event], rtol=1e-8, atol=1e-10, t_eval=np.linspace(0, 50_000, 500_000))
+    sol_xi = solve_ivp(ode_xi, t_span, y0, method='BDF', events=[denom_event, i_event], rtol=1e-8, atol=1e-10, t_eval=np.linspace(0, 30_000, 300_000))
     t = sol_xi.t
     x = sol_xi.y[0]
     i = sol_xi.y[1]
 
     if not sol_xi.success or len(sol_xi.t) < 2:
-        return 1e20
+        return np.inf
 
-    omega = find_omega(x)
+    omega = find_omega(x, M)
     dl_dt = (omega*i)/((3*x + i))
     l = cumulative_trapezoid(dl_dt, t, initial=0.0)
 
@@ -65,7 +65,7 @@ def f_min(parameters, target_strain=trial, plot=False, return_data=False):
     trial /= np.linalg.norm(trial)
 
     #find the best time shift
-    corr = correlate(target, trial, mode="full")
+    corr = correlate(target, trial, mode="full")        
     shift = np.argmax(corr) - (len(trial) - 1)
 
     dt = shift * (t_common[1] - t_common[0]) #the subtraction is to find the timestep
@@ -77,7 +77,12 @@ def f_min(parameters, target_strain=trial, plot=False, return_data=False):
 
     return np.linalg.norm(difference_vector) / np.linalg.norm(target_norm)
 
-bounds = [(0, 5), (0.1, 0.25), (0.01, 0.019), (0.5, 0.9)]
+bounds = [
+    (0.8, 1.2),      # M
+    (0.1, 0.25),     # nu
+    (0.01, 0.014),  # x0
+    (0.59, 0.9)      # i0
+]
 
 result = differential_evolution(f_min, bounds, maxiter=100, popsize=15, polish=False)
 print(result.x, result.fun)
