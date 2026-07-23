@@ -1,7 +1,9 @@
 from scipy.integrate import solve_ivp, cumulative_trapezoid
 from scipy.optimize import differential_evolution
 from scipy.signal import correlate
+import matplotlib.pyplot as plt
 import numpy as np
+import sympy as sp
 import time
 
 from eccentricity_main import trial, start, limit, step, t_span
@@ -10,13 +12,15 @@ from eccentricity_main import ode_xi, find_omega, invert_kepler, denom_event, i_
 
 start_time = time.time()
 
-def f_min(parameters, target_strain=trial, plot=False, return_data=False):
+def f_min(parameters, target_strain=trial):
     G, c= 1, 1
     M = parameters[0]
     nu = parameters[1]
     y0 = (parameters[2], parameters[3])
 
-    sol_xi = solve_ivp(ode_xi, t_span, y0, method='BDF', events=[denom_event, i_event], rtol=1e-8, atol=1e-10, t_eval=np.linspace(0, 10_000, 100_000))
+    target_strain = target_strain[:, :10_000]
+
+    sol_xi = solve_ivp(ode_xi, t_span, y0, method='RK45', args=(M, nu), events=[denom_event, i_event], rtol=1e-8, atol=1e-10, t_eval=np.linspace(0, 10_000, 100_000))
     t = sol_xi.t
     x = sol_xi.y[0]
     i = sol_xi.y[1]
@@ -50,7 +54,7 @@ def f_min(parameters, target_strain=trial, plot=False, return_data=False):
     phi_xi = cumulative_trapezoid(phi_dot, t, initial=0.0)
 
     #plotting the 2,2 mode
-    wave_test = np.real(H22(r, phi_xi, t))
+    wave_test = np.real(H22(r, phi_xi, t, M, nu))
 
     #interpolation
     t_common = target_strain[0]
@@ -73,21 +77,21 @@ def f_min(parameters, target_strain=trial, plot=False, return_data=False):
 
     solution_aligned = np.interp(t_common, t_shifted, solution_dummy_interpolated, left=0, right=0)
     target_norm = np.abs(original_strain_interpolated)
-    difference_vector = original_strain_interpolated - solution_aligned
+    difference_vector = np.abs(original_strain_interpolated) - np.abs(solution_aligned)
 
     return np.linalg.norm(difference_vector) / np.linalg.norm(target_norm)
 
 bounds = [
-    (0.9999, 1.0001),      # M
-    (0.24999, 0.25),     # nu
-    (0.01799, 0.018001),  # x0
-    (0.6999, 0.70001)      # i0
+    (0, 5),      # M
+    (0.1, 0.25),     # nu
+    (0.0, 0.019),  # x0
+    (0.6, 0.85)      # i0
 ]
 
-# result = differential_evolution(f_min, bounds, maxiter=100, popsize=15, polish=False)
-# print(result.x, result.fun)
+result = differential_evolution(f_min, bounds, maxiter=100, popsize=15, polish=False)
+print(result.x, result.fun)
 
-print(f_min([1, 0.25, 0.018, 0.7], trial))
-print(f_min([0.99991389, 0.24999153, 0.01800089, 0.69996827], trial))
+# print(f_min([2, 0.1875, 0.018, 0.75], trial))
+# print(f_min([0.99991389, 0.24999153, 0.01800089, 0.69996827], trial))
 
 print("--- %s seconds ---" % (time.time() - start_time))
